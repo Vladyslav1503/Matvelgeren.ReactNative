@@ -1,6 +1,7 @@
 import { View, Text } from 'react-native';
 import CustomTabBar from '../TabBar';
 import { Tabs, Redirect } from 'expo-router';
+
 export default function TabLayout() {
     return (
         <Tabs
