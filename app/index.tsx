@@ -3,9 +3,9 @@ import{ Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 
 export default function Index() {
-    const [isLogedIn, setIsLogedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    if (!isLogedIn) {
+    if (!isLoggedIn) {
         return (
             <View
                 style={{
@@ -15,8 +15,8 @@ export default function Index() {
                 }}
             >
                 <Text>Edit app/index.tsx to edit this screen.</Text>
-                <Link href="/signIn" style={{color:'blue'}}>Sign In</Link>
-                <Link href="/signUp" style={{ color: 'blue', marginTop: 10 }}>
+                <Link href={"/signIn"} style={{color:'blue'}}>Sign In</Link>
+                <Link href={"/signUp"} style={{ color: 'blue', marginTop: 10 }}>
                     Sign Up
                 </Link>
             </View>
