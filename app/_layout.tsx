@@ -1,6 +1,9 @@
 import { SplashScreen, Stack} from "expo-router";
 import { useFonts } from "expo-font";
-import {useEffect} from "react";
+import { useEffect} from "react";
+import { View } from "react-native";
+import { SafeAreaView  } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -17,5 +20,12 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
+          <StatusBar style="dark" />
+        <SafeAreaView style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </SafeAreaView>
+      </View>
+    );
 }

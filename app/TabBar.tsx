@@ -16,8 +16,20 @@ import ScanIcon from '../assets/icons/scan.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const TAB_WIDTH = width / 5;
+const TAB_CONTEXT_MARGIN = (height >= 890) ? "50%" : "55%";
+let TAB_BAR_HEIGHT: number;
+
+if (height >= 890 && height < 910) {
+    TAB_BAR_HEIGHT = (height * 0.09);
+} else if (height < 890) {
+    TAB_BAR_HEIGHT = (height * 0.08);
+} else if (height >= 910 && width <= 420) {
+    TAB_BAR_HEIGHT = 55;
+} else {
+    TAB_BAR_HEIGHT = (height * 0.1);
+}
 
 const tabs = [
     { label: 'Recipe', route: 'recipe', Icon: RecipeIcon },
@@ -119,7 +131,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         width: '100%',
         backgroundColor: '#fff',
-        height: 80,
+        maxHeight: 80,
+        height: TAB_BAR_HEIGHT,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         shadowColor: '#000',
@@ -135,7 +148,8 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     tabContent: {
-        marginTop: 16,
+        marginTop: TAB_CONTEXT_MARGIN,
+        minHeight: 56,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -146,7 +160,9 @@ const styles = StyleSheet.create({
         color: '#225D4F',
         fontFamily: 'Inter-Regular',
         lineHeight: 12,
-        maxHeight: 56,
+        //maxHeight: 56,
+        includeFontPadding: false,
+        paddingBottom: 2,
     },
     focusedLabel: {
         fontFamily: 'Inter-SemiBold',

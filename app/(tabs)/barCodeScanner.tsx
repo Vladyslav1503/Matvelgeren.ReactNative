@@ -58,17 +58,14 @@ export default function BarcodeScanner() {
 
     if (!permission.granted) {
         return (
-            <SafeAreaView style={{ flex: 1 }}>
-                <View style={styles.container}>
-                    <Text>We need your permission to show the camera</Text>
-                    <Button title="Grant permission" onPress={requestPermission} />
-                </View>
-            </SafeAreaView>
+            <View style={styles.container}>
+                <Text>We need your permission to show the camera</Text>
+                <Button title="Grant permission" onPress={requestPermission} />
+            </View>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1 }}>
         <View style={styles.container}>
             {(isFocused &&
                 <CameraView
@@ -97,7 +94,6 @@ export default function BarcodeScanner() {
                 </CameraView>
             )}
         </View>
-        </SafeAreaView>
     );
 }
 
