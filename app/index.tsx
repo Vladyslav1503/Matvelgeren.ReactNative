@@ -3,7 +3,7 @@ import{ Link, Redirect } from 'expo-router'
 import { useState } from 'react'
 
 export default function Index() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
 
     if (!isLoggedIn) {
         return (

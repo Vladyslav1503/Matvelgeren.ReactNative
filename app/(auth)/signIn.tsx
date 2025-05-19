@@ -15,7 +15,7 @@ export default function SignIn() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
 
-    // 👇 Google OAuth setup
+    // Google OAuth setup
     const [request, response, promptAsync] = Google.useAuthRequest({
         clientId: '751833991834-u2hbkp64mmue66baos9kr5tqe64bgs0r.apps.googleusercontent.com',
         //iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
@@ -60,7 +60,7 @@ export default function SignIn() {
                 <Text style={styles.buttonText}>Sign In</Text>
             </TouchableOpacity>
 
-            {/* --- OR divider --- */}
+            {/* OR divider*/}
             <View style={styles.dividerContainer}>
                 <View style={styles.divider} />
                 <Text style={styles.orText}>or</Text>
