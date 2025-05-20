@@ -4,13 +4,13 @@
     "slug": "Matvelgeren",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo_white.png",
     "scheme": "matvelgeren",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "userInterfaceStyle": "light",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": false
       }

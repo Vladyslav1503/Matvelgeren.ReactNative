@@ -45,6 +45,10 @@ export default function SignIn() {
     };
 
     async function signInWithEmail() {
+        if (!email || !password) {
+            return Alert.alert("Missing Fields", "Please enter both email and password.");
+        }
+
         setLoading(true);
         showLoader();
 
