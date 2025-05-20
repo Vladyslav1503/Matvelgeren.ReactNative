@@ -1,9 +1,9 @@
 ﻿import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Easing , Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import React, {useState, useEffect, useRef} from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { supabase } from "@/lib/supabase";
-import circleLoader from "@/components/circleLoader";
-
+import CircleLoader from "@/components/circleLoader";
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -11,7 +11,7 @@ import Logo from '../../assets/icons/matvelgeren_logo.svg';
 import Eye from '../../assets/icons/open_eye.svg';
 import Closed_Eye from '../../assets/icons/closed_eye.svg';
 import Google_logo from '../../assets/icons/google_logo.svg';
-import CircleLoader from "@/components/circleLoader";
+
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,8 +25,6 @@ export default function SignIn() {
     const scaleAnim = useRef(new Animated.Value(0)).current;
 
     const showLoader = () => {
-        setLoading(true);
-
         Animated.timing(scaleAnim, {
             toValue: 1,
             duration: 300,
@@ -42,24 +40,34 @@ export default function SignIn() {
                 duration: 300,
                 easing: Easing.in(Easing.ease),
                 useNativeDriver: true,
-            }).start(() => {
-                setLoading(false);
             });
-        }, 2000); // ensure loader stays for at least 1s
+        }, 2500);
     };
 
     async function signInWithEmail() {
+        setLoading(true);
         showLoader();
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
             email: email,
             password: password,
-        })
-        if (error)
-            Alert.alert(error.message);
-        setLoading(false);
-        router.replace('/');
+        });
 
+        if (error) {
+            hideLoader();
+            return Alert.alert("Login Failed", error.message);
+        }
+
+        // Wait for session to be set
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        if (!sessionData.session) {
+            hideLoader();
+            return Alert.alert("Login Error", "No session returned after login");
+        }
+
+        // Navigate after session is available
+        router.replace('/');
         hideLoader();
     }
 
@@ -79,92 +87,104 @@ export default function SignIn() {
     }, [response]);
 
     return (
-        <View style={styles.container}>
-            <Logo style={styles.logo} />
-            <Text style={styles.matvelgeren}>MatVelgeren</Text>
-            <Text style={styles.title}>Sign In to your Account</Text>
-            <Text style={styles.subTitle}>Enter your email and password to continue</Text>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+         <ScrollView
+             contentContainerStyle={styles.container}
+             keyboardShouldPersistTaps="handled"
+         >
+             <Logo style={styles.logo} />
+             <Text style={styles.matvelgeren}>Matvelgeren</Text>
+             <Text style={styles.title}>Sign In to your Account</Text>
+             <Text style={styles.subTitle}>Enter your email and password to continue</Text>
 
-            <Text style={styles.instruction}>Email</Text>
-            <TextInput
-                placeholder="username@example.com"
-                onChangeText={setEmail}
-                style={styles.input}
-                />
-            <Text style={styles.instruction}>Enter Password</Text>
+             <Text style={styles.instruction}>Email</Text>
+             <TextInput
+                 placeholder="username@example.com"
+                 onChangeText={setEmail}
+                 style={styles.input}
+                 autoCapitalize="none"
+                 keyboardType="email-address"
+             />
+             <Text style={styles.instruction}>Enter Password</Text>
 
-            <View style={styles.passwordContainer}>
-                <TextInput
-                    placeholder="Password"
-                    secureTextEntry={!showPassword}
-                    onChangeText={setPassword}
-                    style={styles.passwordInput}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                    {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
-                </TouchableOpacity>
-            </View>
+             <View style={styles.passwordContainer}>
+                 <TextInput
+                     placeholder="Password"
+                     secureTextEntry={!showPassword}
+                     onChangeText={setPassword}
+                     style={styles.passwordInput}
+                 />
+                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                     {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
+                 </TouchableOpacity>
+             </View>
 
-            <TouchableOpacity onPress={() => router.push('/forgotPassword')}>
-                <Text style={styles.forgotPassword}>Forgot your password?</Text>
-            </TouchableOpacity>
+             <TouchableOpacity onPress={() => router.push('/forgotPassword')}>
+                 <Text style={styles.forgotPassword}>Forgot your password?</Text>
+             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => signInWithEmail()}>
-                <Text style={styles.buttonText}>Sign In</Text>
-            </TouchableOpacity>
+             <TouchableOpacity style={styles.button} onPress={() => signInWithEmail()}>
+                 <Text style={styles.buttonText}>Sign In</Text>
+             </TouchableOpacity>
 
-            {/* OR divider*/}
-            <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.orText}>or</Text>
-                <View style={styles.divider} />
-            </View>
+             {/* OR divider*/}
+             <View style={styles.dividerContainer}>
+                 <View style={styles.divider} />
+                 <Text style={styles.orText}>Or</Text>
+                 <View style={styles.divider} />
+             </View>
 
-            {/* Google Sign-In Button */}
-            <TouchableOpacity
-                style={styles.googleButton}
-                onPress={() => promptAsync()}
-                disabled={!request}
-            >
-                <View style={styles.googleButtonContent}>
-                    <Google_logo width={20} height={20} />
-                    <Text style={styles.googleButtonText}>Continue with Google</Text>
-                </View>
-            </TouchableOpacity>
+             {/* Google Sign-In Button */}
+             <TouchableOpacity
+                 style={styles.googleButton}
+                 onPress={() => promptAsync()}
+                 disabled={!request}
+             >
+                 <View style={styles.googleButtonContent}>
+                     <Google_logo width={20} height={20} />
+                     <Text style={styles.googleButtonText}>Continue with Google</Text>
+                 </View>
+             </TouchableOpacity>
 
-            <View style={styles.linkContainer}>
-                <Text style={styles.linkTextGray}>Dont have an account? </Text>
-                <Text style={styles.linkTextBlue} onPress={() => router.replace('/signUp')}>Sign up</Text>
-            </View>
+             <View style={styles.linkContainer}>
+                 <Text style={styles.linkTextGray}>Dont have an account? </Text>
+                 <Text style={styles.linkTextBlue} onPress={() => router.replace('/signUp')}>Sign up</Text>
+             </View>
 
-            {loading && (
-                <Animated.View style={[styles.loaderOverlay, { transform: [{ scale: scaleAnim }] }]}>
-                    <CircleLoader />
-                </Animated.View>
-            )}
-
-        </View>
+             {loading && (
+                 <Animated.View style={[styles.loaderOverlay, { transform: [{ scale: scaleAnim }] }]}>
+                     <CircleLoader />
+                 </Animated.View>
+             )}
+         </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
-        justifyContent: 'center'
+        justifyContent: 'center',
+        backgroundColor: '#fff'
     },
     logo: {
         alignSelf: 'center'
     },
     matvelgeren: {
+        marginTop: 4,
         color: "#205446",
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: 'Inter-SemiBold',
-        alignSelf: 'center'
+        alignSelf: 'center',
+        letterSpacing: 1.5
     },
     title: {
         fontFamily: 'Inter-SemiBold',
-        marginBottom: 10,
+        marginBottom: 8,
         fontSize: 25,
         lineHeight: 30,
         letterSpacing: 1
@@ -175,11 +195,11 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         letterSpacing: 1,
         color: "#838383",
-        marginBottom: 80
+        marginBottom: 28
     },
     instruction: {
         fontFamily: 'Inter-Regular',
-        fontSize: 11,
+        fontSize: 10,
         lineHeight: 20,
         letterSpacing: 1,
         color: "#838383"
@@ -188,7 +208,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#838383',
         padding: 10,
-        marginBottom: 10,
+        marginBottom: 12,
         borderRadius: 5
     },
     passwordContainer: {
@@ -213,7 +233,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#205446",
         borderRadius: 8,
         alignSelf: "center",
-        width: "95%",
+        width: "100%",
     },
     buttonText: {
         fontFamily: 'Inter-SemiBold',

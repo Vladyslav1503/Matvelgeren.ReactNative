@@ -1,4 +1,4 @@
-﻿import {View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, Easing} from 'react-native';
+﻿import {View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, Easing,  KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import React, {useRef, useState} from 'react';
 import {supabase} from "@/lib/supabase";
@@ -6,6 +6,7 @@ import Logo from '../../assets/icons/matvelgeren_logo.svg';
 import Eye from '../../assets/icons/open_eye.svg';
 import Closed_Eye from '../../assets/icons/closed_eye.svg';
 import CircleLoader from "@/components/circleLoader";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 
 export default function SignUp() {
@@ -73,65 +74,85 @@ export default function SignUp() {
     }
 
     return (
-        <View style={styles.container}>
-            <Logo style={styles.logo}></Logo>
-            <Text style={styles.matvelgeren}>MatVelgeren</Text>
-            <Text style={styles.title}>Sign Up to a new Account</Text>
-            <Text style={styles.subTitle}>Enter your email and password to sign up</Text>
-            <Text style={styles.instruction}>First Name</Text>
-            <TextInput placeholder="Ola" style={styles.input} onChangeText={setFirstName} />
-            <Text style={styles.instruction}>Last Name</Text>
-            <TextInput placeholder="Normann" style={styles.input} onChangeText={setLastName}/>
-            <Text style={styles.instruction}>Email</Text>
-            <TextInput placeholder="username@example.com" style={styles.input} onChangeText={setEmail}/>
-            <Text style={styles.instruction}>Enter Password</Text>
-
-            <View style={styles.passwordContainer}>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <KeyboardAwareScrollView
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+                enableAutomaticScroll={true}
+                //extraScrollHeight={Platform.OS === 'android' ? 100 : 80}
+                enableOnAndroid={true}
+                showsVerticalScrollIndicator={false}
+            >
+                <Logo style={styles.logo}></Logo>
+                <Text style={styles.matvelgeren}>Matvelgeren</Text>
+                <Text style={styles.title}>Sign Up to a new Account</Text>
+                <Text style={styles.subTitle}>Enter your email and password to sign up</Text>
+                <Text style={styles.instruction}>First Name</Text>
+                <TextInput placeholder="Ola" style={styles.input} onChangeText={setFirstName} />
+                <Text style={styles.instruction}>Last Name</Text>
+                <TextInput placeholder="Normann" style={styles.input} onChangeText={setLastName}/>
+                <Text style={styles.instruction}>Email</Text>
                 <TextInput
-                    placeholder="Password"
-                    secureTextEntry={!showPassword}
-                    style={styles.passwordInput}
-                    onChangeText={setPassword}
+                    placeholder="username@example.com"
+                    style={styles.input}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                    {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
-                </TouchableOpacity>
-            </View>
-            <Text style={styles.instruction}>Confirm Password</Text>
-            <View style={styles.passwordContainer}>
-                <TextInput
-                    placeholder="Confirm Password"
-                    secureTextEntry={!showConfirmPassword}
-                    style={styles.passwordInput}
-                    onChangeText={setConfirmPassword}
-                />
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                    {showConfirmPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.button} onPress={() => signUpWithEmail()}>
-                <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
-            <View style={styles.linkContainer}>
-                <Text style={styles.linkTextGray}>Already have an account? </Text>
-                <Text style={styles.linkTextBlue} onPress={() => router.replace('/signIn')}>Sign in</Text>
-            </View>
+                <Text style={styles.instruction}>Enter Password</Text>
 
-            {loading && (
-                <Animated.View style={[styles.loaderOverlay, { transform: [{ scale: scaleAnim }] }]}>
-                    <CircleLoader />
-                </Animated.View>
-            )}
-        </View>
+                <View style={styles.passwordContainer}>
+                    <TextInput
+                        placeholder="Password"
+                        secureTextEntry={!showPassword}
+                        style={styles.passwordInput}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                        {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
+                    </TouchableOpacity>
+                </View>
+                <Text style={styles.instruction}>Confirm Password</Text>
+                <View style={styles.passwordContainer}>
+                    <TextInput
+                        placeholder="Confirm Password"
+                        secureTextEntry={!showConfirmPassword}
+                        style={styles.passwordInput}
+                        onChangeText={setConfirmPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                        {showConfirmPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.button} onPress={() => signUpWithEmail()}>
+                    <Text style={styles.buttonText}>Sign Up</Text>
+                </TouchableOpacity>
+                <View style={styles.linkContainer}>
+                    <Text style={styles.linkTextGray}>Already have an account? </Text>
+                    <Text style={styles.linkTextBlue} onPress={() => router.replace('/signIn')}>Sign in</Text>
+                </View>
+
+                {loading && (
+                    <Animated.View style={[styles.loaderOverlay, { transform: [{ scale: scaleAnim }] }]}>
+                        <CircleLoader />
+                    </Animated.View>
+                )}
+            </KeyboardAwareScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
-        justifyContent: 'center' },
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+    },
     logo: {
         alignSelf: 'center'
     },
@@ -139,11 +160,14 @@ const styles = StyleSheet.create({
         color: "#205446",
         fontSize: 15,
         fontFamily: 'Inter-SemiBold',
-        alignSelf: 'center'
+        alignSelf: 'center',
+        paddingBottom: 0,
+        marginBottom: 24,
     },
     title: {
         fontFamily: 'Inter-SemiBold',
-        marginBottom: 10,
+        paddingBottom: 0,
+        marginBottom: 8,
         fontSize: 25,
         lineHeight: 30,
         letterSpacing: 1 },
@@ -154,14 +178,16 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         letterSpacing: 1,
         color: "#838383",
-        marginBottom: 40
+        marginBottom: 28
     },
 
     instruction: {
         fontFamily: 'Inter-Regular',
-        fontSize: 11,
+        fontSize: 10,
         lineHeight: 20,
         letterSpacing: 1,
+        marginTop: 12,
+        marginBottom: 4,
         color: "#838383" },
 
     input: {
@@ -205,12 +231,12 @@ const styles = StyleSheet.create({
     },
 
     button: {
-            marginTop: "5%",
+        marginTop: "5%",
         paddingVertical: "5%",
         backgroundColor: "#205446",
         borderRadius: 8,
         alignSelf: "center",
-        width: "95%",
+        width: "100%",
     },
 
     buttonText: {
