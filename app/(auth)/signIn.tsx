@@ -1,6 +1,9 @@
-﻿import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+﻿import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Easing , Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
+import { supabase } from "@/lib/supabase";
+import circleLoader from "@/components/circleLoader";
+
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -8,12 +11,57 @@ import Logo from '../../assets/icons/matvelgeren_logo.svg';
 import Eye from '../../assets/icons/open_eye.svg';
 import Closed_Eye from '../../assets/icons/closed_eye.svg';
 import Google_logo from '../../assets/icons/google_logo.svg';
+import CircleLoader from "@/components/circleLoader";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    const scaleAnim = useRef(new Animated.Value(0)).current;
+
+    const showLoader = () => {
+        setLoading(true);
+
+        Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const hideLoader = () => {
+        setTimeout(() => {
+            Animated.timing(scaleAnim, {
+                toValue: 0,
+                duration: 300,
+                easing: Easing.in(Easing.ease),
+                useNativeDriver: true,
+            }).start(() => {
+                setLoading(false);
+            });
+        }, 2000); // ensure loader stays for at least 1s
+    };
+
+    async function signInWithEmail() {
+        showLoader();
+
+        const { error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        })
+        if (error)
+            Alert.alert(error.message);
+        setLoading(false);
+        router.replace('/');
+
+        hideLoader();
+    }
 
     // Google OAuth setup
     const [request, response, promptAsync] = Google.useAuthRequest({
@@ -38,13 +86,18 @@ export default function SignIn() {
             <Text style={styles.subTitle}>Enter your email and password to continue</Text>
 
             <Text style={styles.instruction}>Email</Text>
-            <TextInput placeholder="username@example.com" style={styles.input} />
+            <TextInput
+                placeholder="username@example.com"
+                onChangeText={setEmail}
+                style={styles.input}
+                />
             <Text style={styles.instruction}>Enter Password</Text>
 
             <View style={styles.passwordContainer}>
                 <TextInput
                     placeholder="Password"
                     secureTextEntry={!showPassword}
+                    onChangeText={setPassword}
                     style={styles.passwordInput}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
@@ -56,7 +109,7 @@ export default function SignIn() {
                 <Text style={styles.forgotPassword}>Forgot your password?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => {}}>
+            <TouchableOpacity style={styles.button} onPress={() => signInWithEmail()}>
                 <Text style={styles.buttonText}>Sign In</Text>
             </TouchableOpacity>
 
@@ -83,6 +136,12 @@ export default function SignIn() {
                 <Text style={styles.linkTextGray}>Dont have an account? </Text>
                 <Text style={styles.linkTextBlue} onPress={() => router.replace('/signUp')}>Sign up</Text>
             </View>
+
+            {loading && (
+                <Animated.View style={[styles.loaderOverlay, { transform: [{ scale: scaleAnim }] }]}>
+                    <CircleLoader />
+                </Animated.View>
+            )}
 
         </View>
     );
@@ -225,5 +284,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter-Regular',
         alignSelf: 'flex-end',
         marginBottom: 15
+    },
+    loaderOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
     }
 });
