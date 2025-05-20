@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Dimensions,
     Animated,
+    Platform
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +25,7 @@ let TAB_BAR_HEIGHT: number;
 if (height >= 890 && height < 910) {
     TAB_BAR_HEIGHT = (height * 0.09);
 } else if (height < 890) {
-    TAB_BAR_HEIGHT = (height * 0.08);
+    TAB_BAR_HEIGHT = (height * 0.07);
 } else if (height >= 910 && width <= 420) {
     TAB_BAR_HEIGHT = 55;
 } else {
@@ -135,11 +136,22 @@ const styles = StyleSheet.create({
         height: TAB_BAR_HEIGHT,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: -4 },
-        elevation: 8,
+        overflow: 'visible',
+        zIndex: 1,
+        ...Platform.select({
+            android: {
+                boxShadow: '0 -10px 25px rgba(0, 0, 0, 0.06)',
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: -16 },
+                elevation: 8,
+            },
+            ios: {
+                shadowColor: '#000',
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: -16 },
+            },
+        }),
     },
     tab: {
         flex: 1,
@@ -175,5 +187,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 58 / 2,
         zIndex: -1,
+        ...Platform.select({
+            android: {
+                elevation: 0,
+                boxShadow: '0 -20px 14px rgba(0, 0, 0, 0.02)',
+            },
+            ios: {
+                shadowColor: '#000',
+                shadowOpacity: 0.02,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: -20 },
+            },
+        }),
     },
 });
