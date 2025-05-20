@@ -6,7 +6,7 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    Platform
+    Platform, Dimensions
 } from "react-native";
 
 import SearchIcon from '../../assets/icons/search.svg';
@@ -64,6 +64,17 @@ const sampleProducts: Product[] = [
     }
 ];
 
+const { width, height } = Dimensions.get('window');
+console.log(height);
+let TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height >= 890) ? height * 0.07 : height * 0.05;
+
+if (width <= 420 && height >= 910) {
+    TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height * 0.05);
+} else if (height < 890) {
+    TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height * 0.05);
+} else if (height >= 890 && height < 910) {
+    TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height * 0.07);
+}
 // Reusable Product Card Component
 interface ProductCardProps {
     product: Product;
@@ -193,7 +204,7 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     totalContainer: {
-        bottom:40,
+        bottom: TOTAL_SUM_CONTAINER_MARGIN_BOTTOM,
         alignItems: "flex-end",
         paddingVertical: 15,
     },
@@ -208,9 +219,9 @@ const styles = StyleSheet.create({
             },
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 3,
+                shadowOffset: { width: 1, height: -2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 5,
             }
         }),
         elevation: 1,

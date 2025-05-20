@@ -12,7 +12,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import RecipeIcon from '../assets/icons/recipe.svg';
-import ShoppingCartIcon from '../assets/icons/favorite.svg';
+import ShoppingCartIcon from '../assets/icons/shop.svg';
 import ScanIcon from '../assets/icons/scan.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
             ios: {
                 shadowColor: '#000',
                 shadowOpacity: 0.06,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: -16 },
+                shadowRadius: 25,
+                shadowOffset: { width: 0, height: -10 },
             },
         }),
     },
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
                 shadowColor: '#000',
                 shadowOpacity: 0.02,
                 shadowRadius: 14,
-                shadowOffset: { width: 0, height: -20 },
+                shadowOffset: { width: 0, height: -22 },
             },
         }),
     },
