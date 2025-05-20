@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
             },
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 3,
+                shadowOffset: { width: 1, height: -2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 5,
             }
         }),
         elevation: 1,
