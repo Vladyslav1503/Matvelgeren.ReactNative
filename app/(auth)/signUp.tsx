@@ -47,6 +47,11 @@ export default function SignUp() {
     };
 
     async function signUpWithEmail() {
+        if (!firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirmPassword) {
+            Alert.alert("Please fill out all fields.");
+            return;
+        }
+
         if (password !== confirmPassword) {
             Alert.alert("Passwords do not match");
             return;
