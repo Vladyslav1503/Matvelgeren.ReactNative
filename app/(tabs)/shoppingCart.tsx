@@ -12,7 +12,7 @@ import {
 import SearchIcon from '../../assets/icons/search.svg';
 import  ProductCard  from '../../components/ProductCard'
 
-// Define types for our data
+// Define types for data
 interface Product {
     id: string;
     name: string;
