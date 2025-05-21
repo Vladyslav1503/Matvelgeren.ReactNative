@@ -2,15 +2,28 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, Button } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
+import  ProductCard  from '../../components/ProductCard'
+import { fetchProductByEAN } from '@/api/kassalappAPI'
+import { mapApiResponseToProductCard } from '@/utils/nutritionParser';
 
 const { width } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.8;
 const LINE_HEIGHT = 2;
 
+interface ApiResponse {
+    data: {
+        ean: string;
+        products: any[];
+        nutrition: any[];
+    };
+}
+
 export default function BarcodeScanner() {
     const [scanned, setScanned] = useState(false);
     const [permission, requestPermission] = useCameraPermissions();
     const [isFocused, setIsFocused] = useState(false);
+    const [scannedProduct, setScannedProduct] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const animation = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -45,12 +58,35 @@ export default function BarcodeScanner() {
         ).start();
     };
 
-    const handleBarCodeScanned = ({ data }: BarcodeScanningResult) => {
+    const handleBarCodeScanned = async ({ data }: BarcodeScanningResult) => {
         if (!scanned) {
             setScanned(true);
+            setIsLoading(true);
             console.log('Scanned code:', data);
-            setTimeout(() => setScanned(false), 3000);
+            try {
+                const response: ApiResponse = await fetchProductByEAN(data);
+                const productData = mapApiResponseToProductCard(response);
+
+                if (!productData || !productData.id) {
+                    alert("Product not found.");
+                    setScanned(false); // allow retry immediately
+                    return;
+                }
+                console.log("Product:", productData);
+                setScannedProduct(productData);
+            } catch (error) {
+                console.log("Error:", error);
+                alert("Could not fetch product information.");
+            } finally {
+                setIsLoading(false);
+                setTimeout(() => setScanned(false), 3000);
+            }
         }
+    };
+
+    // Function to handle removing the scanned product
+    const handleRemoveProduct = () => {
+        setScannedProduct(null);
     };
 
     if (!permission) return <View />;
@@ -66,11 +102,11 @@ export default function BarcodeScanner() {
 
     return (
         <View style={styles.container}>
-            {(isFocused &&
+            {isFocused && !scannedProduct && (
                 <CameraView
-                style={StyleSheet.absoluteFillObject}
-                facing="back"
-                onBarcodeScanned={handleBarCodeScanned}
+                    style={StyleSheet.absoluteFillObject}
+                    facing="back"
+                    onBarcodeScanned={handleBarCodeScanned}
                 >
                     <View style={styles.overlay}>
                         <View style={styles.fade} />
@@ -91,6 +127,25 @@ export default function BarcodeScanner() {
                         <View style={styles.fade} />
                     </View>
                 </CameraView>
+            )}
+
+            {isLoading && (
+                <View style={styles.loadingContainer}>
+                    <Text>Loading product information...</Text>
+                </View>
+            )}
+
+            {scannedProduct && (
+                <View style={styles.productContainer}>
+                    <ProductCard
+                        product={scannedProduct}
+                        onRemove={handleRemoveProduct}
+                    />
+                    <Button
+                        title="Scan Another Product"
+                        onPress={handleRemoveProduct}
+                    />
+                </View>
             )}
         </View>
     );
@@ -122,7 +177,18 @@ const styles = StyleSheet.create({
     scanLine: {
         height: LINE_HEIGHT,
         width: '100%',
-        backgroundColor: '#00FF00', // solid color for now
+        backgroundColor: '#00FF00',
         position: 'absolute',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'white',
+    },
+    productContainer: {
+        flex: 1,
+        padding: 16,
+        backgroundColor: 'white',
     },
 });

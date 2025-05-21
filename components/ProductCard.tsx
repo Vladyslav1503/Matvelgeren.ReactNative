@@ -4,6 +4,7 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
+    Image,
     ScrollView, Platform
 } from "react-native";
 
@@ -34,10 +35,11 @@ interface ProductCardProps {
 export default function ProductCard({ product, onRemove }: ProductCardProps)  {
     return (
         <View style={styles.productCard}>
-            {/* Image placeholder - would be replaced with actual Image component */}
-            <View style={styles.productImage}>
-                <Text style={styles.imageText}>Product Image</Text>
-            </View>
+            <Image
+                source={{ uri: product.imageUrl }}
+                style={styles.productImage}
+                resizeMode="contain"
+            />
 
             <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>
@@ -119,6 +121,9 @@ const getLabelStyle = (label: string): object => {
     if (labelLower === 'gluten free') return styles.glutenFreeLabel;
     if (labelLower === 'low calorie') return styles.lowCalorieLabel;
     if (labelLower === 'no carbs') return styles.noCarbs;
+    if (labelLower === 'low fat') return styles.healthyLabel
+    if (labelLower === 'heigh calorie') return styles.highCalorieLabel
+    if (labelLower === 'high fat') return styles.highSugarLabel
 
     // Default label style
     return {};
