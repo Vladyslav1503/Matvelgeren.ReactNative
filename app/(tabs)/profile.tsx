@@ -686,16 +686,16 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     fatBox: {
-        backgroundColor: "#76B8EC", // Light blue
+        backgroundColor: "#76B8EC",
     },
     caloriesBox: {
-        backgroundColor: "#B18963", // Light orange
+        backgroundColor: "#B18963",
     },
     proteinBox: {
-        backgroundColor: "#DDA16A", // Light amber
+        backgroundColor: "#DDA16A",
     },
     carbsBox: {
-        backgroundColor: "#81B58F", // Light green
+        backgroundColor: "#81B58F",
     },
     nutritionLabel: {
         fontSize: 25,
