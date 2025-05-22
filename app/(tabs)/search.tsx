@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
     Text,
     View,
@@ -6,9 +6,11 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    Platform,
+    ActivityIndicator,
     SafeAreaView
 } from "react-native";
+import { searchProducts } from '@/api/kassalappAPI';
+import { determineProductLabels } from '@/utils/nutritionParser';
 
 import SearchIcon from '../../assets/icons/search.svg';
 import ProductCard from '../../components/ProductCard';
@@ -27,6 +29,11 @@ interface Product {
     price: number;
     labels: string[];
     imageUrl: string;
+    store?: string;
+    storeLogo?: string;
+    description?: string;
+    brand?: string;
+    weight?: string;
     type: 'product';
 }
 
@@ -44,6 +51,52 @@ interface Recipe {
     labels: string[];
     imageUrl: string;
     type: 'recipe';
+}
+
+// API Product interface
+interface ApiProduct {
+    id: number;
+    name: string;
+    brand?: string;
+    vendor?: string;
+    ean: string;
+    url: string;
+    image?: string;
+    category: Array<{
+        id: number;
+        depth: number;
+        name: string;
+    }>;
+    description?: string;
+    ingredients?: string;
+    current_price: number;
+    current_unit_price?: number;
+    weight?: number;
+    weight_unit?: string;
+    store: {
+        name: string;
+        code: string;
+        url: string;
+        logo?: string;
+    };
+    price_history?: Array<{
+        price: number;
+        date: string;
+    }>;
+    allergens?: Array<{
+        code: string;
+        display_name: string;
+        contains: string;
+    }>;
+    nutrition?: Array<{
+        code: string;
+        display_name: string;
+        amount: number;
+        unit: string;
+    }>;
+    labels?: string[];
+    created_at: string;
+    updated_at: string;
 }
 
 type SearchItem = Product | Recipe;
@@ -107,8 +160,64 @@ const sampleRecipes: Recipe[] = [
     }
 ];
 
-// Combine all data
-const allItems: SearchItem[] = [ ...sampleRecipes];
+// Function to convert API product to our Product interface
+const convertApiProductToProduct = (apiProduct: ApiProduct): Product => {
+    // Extract nutrition data if available
+    const nutritionMap = new Map<string, number>();
+    if (apiProduct.nutrition) {
+        apiProduct.nutrition.forEach((item) => {
+            nutritionMap.set(item.code, item.amount);
+        });
+    }
+
+    // Generate labels based on nutrition values using external function
+    const labels = determineProductLabels(nutritionMap);
+
+    // Format weight
+    let weight = '';
+    if (apiProduct.weight && apiProduct.weight_unit) {
+        weight = `${apiProduct.weight}${apiProduct.weight_unit}`;
+    } else if (apiProduct.weight) {
+        weight = `${apiProduct.weight}g`;
+    }
+
+    return {
+        id: apiProduct.id.toString(),
+        name: apiProduct.name || 'Unknown Product',
+        calories: nutritionMap.get('energi_kcal'),
+        protein: nutritionMap.get('protein'),
+        fat: nutritionMap.get('fett_totalt'),
+        carbs: nutritionMap.get('karbohydrater'),
+        sugar: nutritionMap.get('sukkerarter'),
+        price: Number(apiProduct.current_price) || 0,
+        labels: labels,
+        imageUrl: apiProduct.image || '/api/placeholder/150/150',
+        store: apiProduct.store?.name,
+        storeLogo: apiProduct.store?.logo,
+        description: apiProduct.description || '',
+        brand: apiProduct.brand || '',
+        weight: weight,
+        ean: apiProduct.ean || '',
+        type: 'product'
+    };
+};
+
+// Custom hook for debounced search
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+}
 
 // Get all unique labels for filtering
 const getAllLabels = (items: SearchItem[]): string[] => {
@@ -123,11 +232,75 @@ export default function Search() {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [selectedFilter, setSelectedFilter] = useState<'all' | 'recipes' | 'products'>('all');
     const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+    const [apiProducts, setApiProducts] = useState<Product[]>([]);
+    const [isSearching, setIsSearching] = useState<boolean>(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
-    const allLabels = useMemo(() => getAllLabels(allItems), []);
+    // Debounce search query to avoid too many API calls
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+    // Combine recipes and API products
+    const allItems: SearchItem[] = useMemo(() => {
+        return [...sampleRecipes, ...apiProducts];
+    }, [apiProducts]);
+
+    // Get all unique labels from combined data
+    const allLabels = useMemo(() => getAllLabels(allItems), [allItems]);
 
     // Check if any filters are active
     const hasActiveFilters = searchQuery.trim() !== '' || selectedFilter !== 'all' || selectedLabels.length > 0;
+
+    // Effect to handle product search via API
+    useEffect(() => {
+        if (debouncedSearchQuery.trim().length < 3) {
+            setApiProducts([]);
+            setSearchError(null);
+            return;
+        }
+
+        // Only search for products if we're showing all items or specifically products
+        if (selectedFilter === 'recipes') {
+            setApiProducts([]);
+            return;
+        }
+
+        performProductSearch(debouncedSearchQuery.trim());
+    }, [debouncedSearchQuery, selectedFilter]);
+
+    const performProductSearch = async (query: string): Promise<void> => {
+        setIsSearching(true);
+        setSearchError(null);
+
+        try {
+            const response = await searchProducts(query);
+
+            // Handle API response
+            let productsArray: ApiProduct[] = [];
+
+            if (response && response.data && Array.isArray(response.data)) {
+                productsArray = response.data;
+            } else if (response && Array.isArray(response)) {
+                productsArray = response;
+            } else {
+                console.warn('Unexpected API response format:', response);
+                productsArray = [];
+            }
+
+            // Convert and validate products
+            const convertedProducts = productsArray
+                .filter((product: ApiProduct) => product && product.id)
+                .map((product: ApiProduct) => convertApiProductToProduct(product));
+
+            setApiProducts(convertedProducts);
+
+        } catch (error) {
+            console.error('Product search failed:', error);
+            setSearchError('Failed to search products. Please try again.');
+            setApiProducts([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
 
     // Filter items based on search query, type filter, and label filters
     const filteredItems = useMemo(() => {
@@ -138,14 +311,19 @@ export default function Search() {
 
         let filtered = allItems;
 
-        // Filter by search query
+        // Filter by search query (for recipes, search in name; products are already filtered by API)
         if (searchQuery.trim() !== '') {
-            filtered = filtered.filter(item =>
-                item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.labels.some(label =>
-                    label.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-            );
+            filtered = filtered.filter(item => {
+                // For recipes, filter by name and labels
+                if (item.type === 'recipe') {
+                    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        item.labels.some(label =>
+                            label.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                }
+                // For products, they're already filtered by API search
+                return true;
+            });
         }
 
         // Filter by type
@@ -165,7 +343,7 @@ export default function Search() {
         }
 
         return filtered;
-    }, [searchQuery, selectedFilter, selectedLabels, hasActiveFilters]);
+    }, [searchQuery, selectedFilter, selectedLabels, hasActiveFilters, allItems]);
 
     // Group filtered items by type for display
     const recipes = filteredItems.filter(item => item.type === 'recipe') as Recipe[];
@@ -184,6 +362,16 @@ export default function Search() {
         console.log('Remove product:', id);
     };
 
+    const handleSearchChange = (text: string): void => {
+        setSearchQuery(text);
+
+        // If search is cleared, clear API products and error immediately
+        if (text.trim().length === 0) {
+            setApiProducts([]);
+            setSearchError(null);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Title */}
@@ -196,9 +384,23 @@ export default function Search() {
                     style={styles.searchInput}
                     placeholder="Search product or recipe"
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    onChangeText={handleSearchChange}
                 />
+                {isSearching && (
+                    <ActivityIndicator
+                        size="small"
+                        color="#666"
+                        style={styles.searchLoader}
+                    />
+                )}
             </View>
+
+            {/* Search Error */}
+            {searchError && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{searchError}</Text>
+                </View>
+            )}
 
             {/* Type Filter */}
             <View style={styles.filterContainer}>
@@ -263,7 +465,7 @@ export default function Search() {
                             Start searching or apply filters to see recipes and products
                         </Text>
                     </View>
-                ) : filteredItems.length === 0 ? (
+                ) : filteredItems.length === 0 && !isSearching ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>
                             No results found. Try adjusting your search or filters.
@@ -295,6 +497,7 @@ export default function Search() {
                                         product={product}
                                         ean={product.ean}
                                         onRemove={removeProduct}
+                                        showRemoveButton={false}
                                     />
                                 ))}
                             </View>
@@ -343,6 +546,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Inter-Regular',
         color: '#333',
+    },
+    searchLoader: {
+        marginLeft: 8,
+    },
+    errorContainer: {
+        backgroundColor: '#ffebee',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    errorText: {
+        color: '#c62828',
+        fontFamily: 'Inter-Regular',
+        fontSize: 14,
+        textAlign: 'center',
     },
     filterContainer: {
         marginBottom: 12,
