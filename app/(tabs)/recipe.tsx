@@ -37,7 +37,7 @@ interface Recipe {
     instructions: string[];
 }
 
-// Mock recipe data - In a real app, this would come from your API
+// Mock recipe data - In a real app, this would come from our API
 const mockRecipes: Record<string, Recipe> = {
     '1': {
         id: '1',

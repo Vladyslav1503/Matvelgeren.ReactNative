@@ -12,7 +12,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { router, useLocalSearchParams } from 'expo-router';
 
-// Import your existing SVG icons
+
 import Fat from '../../assets/icons/fat.svg';
 import Calories from '../../assets/icons/calories.svg';
 import Protein from '../../assets/icons/protein.svg';
@@ -42,7 +42,7 @@ interface Product {
     allergens: string[];
 }
 
-// Mock product data - In a real app, this would come from your API
+// Mock product data - In a real app, this would come from our API
 const mockProducts: Record<string, Product> = {
     '1': {
         id: '1',
@@ -146,7 +146,7 @@ export default function Product() {
     useEffect(() => {
         // Load product data based on the ID
         if (id) {
-            // In a real app, you would fetch from your API here
+            // In a real app, we could fetch from your API here
             const foundProduct = mockProducts[id];
             if (foundProduct) {
                 setProduct(foundProduct);
@@ -157,9 +157,9 @@ export default function Product() {
 
     const handleToggleFavorite = () => {
         setIsFavorite(!isFavorite);
-        // This is where you would implement the cart/favorite logic
+        // This is where we could implement the cart/favorite logic
         console.log('Toggle favorite:', product?.name, !isFavorite ? 'Added to cart' : 'Removed from cart');
-        // You can integrate with your cart state here
+        // Right here is where we can integrate with your cart state here
     };
 
     const handleGoBack = () => {
@@ -321,7 +321,7 @@ export default function Product() {
                     </View>
                 </View>
 
-                {/* Add spacing for safe area */}
+                {/* spacing for safe area */}
                 <View style={styles.bottomSpacing} />
             </ScrollView>
         </View>

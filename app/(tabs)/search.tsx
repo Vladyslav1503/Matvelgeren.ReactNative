@@ -47,7 +47,7 @@ interface Recipe {
 
 type SearchItem = Product | Recipe;
 
-// Sample data (combining from your existing components)
+// Sample data
 const sampleProducts: Product[] = [
     {
         id: 'p1',
@@ -195,7 +195,7 @@ export default function Search() {
             );
         }
 
-        // Filter by labels (only apply if labels are selected)
+        // Filter by labels
         if (selectedLabels.length > 0) {
             filtered = filtered.filter(item =>
                 selectedLabels.some(selectedLabel =>
@@ -220,7 +220,7 @@ export default function Search() {
     };
 
     const removeProduct = (id: string) => {
-        // This would typically connect to your cart management logic
+        // This would connect to our cart management logic
         console.log('Remove product:', id);
     };
 
