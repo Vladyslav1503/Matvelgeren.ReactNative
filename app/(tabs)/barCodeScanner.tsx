@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, Button } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
-import  ProductCard  from '../../components/ProductCard'
-import { fetchProductByEAN } from '@/api/kassalappAPI'
+import ProductCard from '../../components/ProductCard';
+import { fetchProductByEAN } from '@/api/kassalappAPI';
 import { mapApiResponseToProductCard } from '@/utils/nutritionParser';
+import Svg, { Defs, Rect, Mask } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
-const FRAME_SIZE = width * 0.8;
+const { width, height } = Dimensions.get('window');
+const FRAME_SIZE = width * 0.7;
+const BORDER_RADIUS = 20;
 const LINE_HEIGHT = 2;
 
 interface ApiResponse {
@@ -26,22 +28,15 @@ export default function BarcodeScanner() {
     const [isLoading, setIsLoading] = useState(false);
     const animation = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-        if (permission?.granted) {
-            startLineAnimation();
-        }
-    }, [permission]);
+    const centerX = (width - FRAME_SIZE) / 2;
+    const centerY = (height - FRAME_SIZE) / 2;
 
-    useFocusEffect(
-        React.useCallback(() => {
-            setIsFocused(true);
-            return () => {
-                setIsFocused(false);
-            };
-        }, [])
-    );
-
-    const startLineAnimation = () => {
+    // Simple function to start the animation
+    const startAnimation = () => {
+        // Reset to initial position
+        animation.setValue(0);
+        
+        // Create and start the animation sequence
         Animated.loop(
             Animated.sequence([
                 Animated.timing(animation, {
@@ -58,10 +53,33 @@ export default function BarcodeScanner() {
         ).start();
     };
 
+    // Start animation when the component mounts and permissions are granted
+    useEffect(() => {
+        if (permission?.granted && isFocused && !scannedProduct && !isLoading) {
+            startAnimation();
+        }
+    }, [permission, isFocused, scannedProduct, isLoading]);
+
+    // Handle screen focus changes
+    useFocusEffect(
+        React.useCallback(() => {
+            setIsFocused(true);
+            if (permission?.granted && !scannedProduct && !isLoading) {
+                startAnimation();
+            }
+            
+            return () => {
+                setIsFocused(false);
+            };
+        }, [permission, scannedProduct, isLoading])
+    );
+
     const handleBarCodeScanned = async ({ data }: BarcodeScanningResult) => {
+        console.log('trigger:', data);
         if (!scanned) {
             setScanned(true);
             setIsLoading(true);
+            
             console.log('Scanned code:', data);
             try {
                 const response: ApiResponse = await fetchProductByEAN(data);
@@ -70,6 +88,7 @@ export default function BarcodeScanner() {
                 if (!productData || !productData.id) {
                     alert("Product not found.");
                     setScanned(false); // allow retry immediately
+                    setIsLoading(false);
                     return;
                 }
                 console.log("Product:", productData);
@@ -77,6 +96,8 @@ export default function BarcodeScanner() {
             } catch (error) {
                 console.log("Error:", error);
                 alert("Could not fetch product information.");
+                setIsLoading(false);
+                setScanned(false);
             } finally {
                 setIsLoading(false);
                 setTimeout(() => setScanned(false), 3000);
@@ -87,6 +108,7 @@ export default function BarcodeScanner() {
     // Function to handle removing the scanned product
     const handleRemoveProduct = () => {
         setScannedProduct(null);
+        // The animation will restart automatically due to the dependency in useEffect
     };
 
     if (!permission) return <View />;
@@ -103,32 +125,71 @@ export default function BarcodeScanner() {
     return (
         <View style={styles.container}>
             {isFocused && !scannedProduct && (
-                <CameraView
-                    style={StyleSheet.absoluteFillObject}
-                    facing="back"
-                    onBarcodeScanned={handleBarCodeScanned}
-                >
-                    <View style={styles.overlay}>
-                        <View style={styles.fade} />
-                        <View style={styles.middleRow}>
-                            <View style={styles.fade} />
-                            <View style={styles.focusBox}>
-                                <Animated.View
-                                    style={[
-                                        styles.scanLine,
-                                        {
-                                            transform: [{ translateY: animation }],
-                                        },
-                                    ]}
-                                />
-                            </View>
-                            <View style={styles.fade} />
-                        </View>
-                        <View style={styles.fade} />
+                <>
+                    {/* Camera view fills the screen */}
+                    <CameraView
+                        style={StyleSheet.absoluteFillObject}
+                        facing="back"
+                        onBarcodeScanned={handleBarCodeScanned}
+                    />
+
+                    {/* SVG overlay with cutout */}
+                    <View style={StyleSheet.absoluteFillObject}>
+                        <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
+                            <Defs>
+                                <Mask id="mask" x="0" y="0" height="100%" width="100%">
+                                    {/* Everything is white here (visible) */}
+                                    <Rect height="100%" width="100%" fill="white" />
+
+                                    {/* This black rectangle creates the cutout (transparent) */}
+                                    <Rect
+                                        x={centerX}
+                                        y={centerY}
+                                        width={FRAME_SIZE}
+                                        height={FRAME_SIZE}
+                                        rx={BORDER_RADIUS}
+                                        ry={BORDER_RADIUS}
+                                        fill="black"
+                                    />
+                                </Mask>
+                            </Defs>
+
+                            {/* This rectangle uses the mask */}
+                            <Rect
+                                height="100%"
+                                width="100%"
+                                fill="rgba(0, 0, 0, 0.6)"
+                                mask="url(#mask)"
+                            />
+                        </Svg>
                     </View>
-                </CameraView>
+
+                    {/* Frame border positioned exactly at the same coordinates */}
+                    <View
+                        style={[
+                            styles.scanFrame,
+                            {
+                                position: 'absolute',
+                                left: centerX,
+                                top: centerY,
+                                width: FRAME_SIZE,
+                                height: FRAME_SIZE,
+                            }
+                        ]}
+                    >
+                        <Animated.View
+                            style={[
+                                styles.scanLine,
+                                {
+                                    transform: [{ translateY: animation }],
+                                },
+                            ]}
+                        />
+                    </View>
+                </>
             )}
 
+            {/* Rest of your component (loading state and product display) */}
             {isLoading && (
                 <View style={styles.loadingContainer}>
                     <Text>Loading product information...</Text>
@@ -155,23 +216,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    overlay: {
-        flex: 1,
-        justifyContent: 'space-between',
-    },
-    fade: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    middleRow: {
-        flexDirection: 'row',
-        flex: 1,
-    },
-    focusBox: {
-        width: FRAME_SIZE,
-        height: FRAME_SIZE,
-        borderColor: '#00FF00',
+    scanFrame: {
+        borderRadius: BORDER_RADIUS,
         borderWidth: 2,
+        borderColor: '#00FF00',
         overflow: 'hidden',
     },
     scanLine: {

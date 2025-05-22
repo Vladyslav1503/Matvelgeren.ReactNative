@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'flex-end',
         overflow: 'visible',
+        paddingLeft: 3,
     },
     priceText: {
         fontSize: 13,
