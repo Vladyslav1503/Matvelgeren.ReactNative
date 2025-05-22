@@ -12,7 +12,7 @@ import {
 import SearchIcon from '../../assets/icons/search.svg';
 import  ProductCard  from '../../components/ProductCard'
 
-// Define types for data
+//  data tyoes
 interface Product {
     id: string;
     name: string;
@@ -75,7 +75,7 @@ if (width <= 420 && height >= 910) {
 } else if (height >= 890 && height < 910) {
     TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height * 0.07);
 }
-// Reusable Product Card Component
+// Reusable Product Card
 interface ProductCardProps {
     product: Product;
     onRemove?: (id: string) => void;
@@ -85,7 +85,7 @@ export default function ShoppingCart() {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [products, setProducts] = useState<Product[]>(sampleProducts);
 
-    // Calculate total price
+    // Calculation total price
     const totalPrice = products.reduce((sum, product) => sum + product.price, 0);
 
     // Remove product function
