@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, Button } from 'react-native';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    Animated, 
+    Dimensions, 
+    TouchableOpacity,
+    ActivityIndicator,
+    Platform
+} from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
 import ProductCard from '../../components/ProductCard';
@@ -26,6 +35,7 @@ export default function BarcodeScanner() {
     const [isFocused, setIsFocused] = useState(false);
     const [scannedProduct, setScannedProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const animation = useRef(new Animated.Value(0)).current;
 
     const centerX = (width - FRAME_SIZE) / 2;
@@ -74,11 +84,19 @@ export default function BarcodeScanner() {
         }, [permission, scannedProduct, isLoading])
     );
 
-    const handleBarCodeScanned = async ({ data }: BarcodeScanningResult) => {
+    const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
+        // Filter out QR codes
+        if (type === 'qr') {
+            setError("QR codes are not supported. Please scan a product barcode.");
+            setTimeout(() => setError(null), 3000);
+            return;
+        }
+        
         console.log('trigger:', data);
         if (!scanned) {
             setScanned(true);
             setIsLoading(true);
+            setError(null);
             
             console.log('Scanned code:', data);
             try {
@@ -86,8 +104,8 @@ export default function BarcodeScanner() {
                 const productData = mapApiResponseToProductCard(response);
 
                 if (!productData || !productData.id) {
-                    alert("Product not found.");
-                    setScanned(false); // allow retry immediately
+                    setError("Product not found. Please try another product.");
+                    setScanned(false);
                     setIsLoading(false);
                     return;
                 }
@@ -95,8 +113,7 @@ export default function BarcodeScanner() {
                 setScannedProduct(productData);
             } catch (error) {
                 console.log("Error:", error);
-                alert("Could not fetch product information.");
-                setIsLoading(false);
+                setError("Could not fetch product information. Please try again.");
                 setScanned(false);
             } finally {
                 setIsLoading(false);
@@ -108,6 +125,7 @@ export default function BarcodeScanner() {
     // Function to handle removing the scanned product
     const handleRemoveProduct = () => {
         setScannedProduct(null);
+        setError(null);
         // The animation will restart automatically due to the dependency in useEffect
     };
 
@@ -116,67 +134,68 @@ export default function BarcodeScanner() {
     if (!permission.granted) {
         return (
             <View style={styles.container}>
-                <Text>We need your permission to show the camera</Text>
-                <Button title="Grant permission" onPress={requestPermission} />
+                <Text style={styles.permissionText}>We need your permission to show the camera</Text>
+                <TouchableOpacity style={styles.button} onPress={requestPermission}>
+                    <Text style={styles.buttonText}>Grant permission</Text>
+                </TouchableOpacity>
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            {isFocused && !scannedProduct && (
-                <>
-                    {/* Camera view fills the screen */}
-                    <CameraView
-                        style={StyleSheet.absoluteFillObject}
-                        facing="back"
-                        onBarcodeScanned={handleBarCodeScanned}
-                    />
+            {/* Camera layer (always present) */}
+            {isFocused && (
+                <CameraView
+                    style={StyleSheet.absoluteFillObject}
+                    facing="back"
+                    onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                />
+            )}
 
-                    {/* SVG overlay with cutout */}
-                    <View style={StyleSheet.absoluteFillObject}>
-                        <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
-                            <Defs>
-                                <Mask id="mask" x="0" y="0" height="100%" width="100%">
-                                    {/* Everything is white here (visible) */}
-                                    <Rect height="100%" width="100%" fill="white" />
+            {/* Overlay layer (always present when scanning) */}
+            {isFocused && (
+                <View style={StyleSheet.absoluteFillObject}>
+                    <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
+                        <Defs>
+                            <Mask id="mask" x="0" y="0" height="100%" width="100%">
+                                <Rect height="100%" width="100%" fill="white" />
+                                <Rect
+                                    x={centerX}
+                                    y={centerY}
+                                    width={FRAME_SIZE}
+                                    height={FRAME_SIZE}
+                                    rx={BORDER_RADIUS}
+                                    ry={BORDER_RADIUS}
+                                    fill="black"
+                                />
+                            </Mask>
+                        </Defs>
+                        <Rect
+                            height="100%"
+                            width="100%"
+                            fill="rgba(0, 0, 0, 0.6)"
+                            mask="url(#mask)"
+                        />
+                    </Svg>
+                </View>
+            )}
 
-                                    {/* This black rectangle creates the cutout (transparent) */}
-                                    <Rect
-                                        x={centerX}
-                                        y={centerY}
-                                        width={FRAME_SIZE}
-                                        height={FRAME_SIZE}
-                                        rx={BORDER_RADIUS}
-                                        ry={BORDER_RADIUS}
-                                        fill="black"
-                                    />
-                                </Mask>
-                            </Defs>
-
-                            {/* This rectangle uses the mask */}
-                            <Rect
-                                height="100%"
-                                width="100%"
-                                fill="rgba(0, 0, 0, 0.6)"
-                                mask="url(#mask)"
-                            />
-                        </Svg>
-                    </View>
-
-                    {/* Frame border positioned exactly at the same coordinates */}
-                    <View
-                        style={[
-                            styles.scanFrame,
-                            {
-                                position: 'absolute',
-                                left: centerX,
-                                top: centerY,
-                                width: FRAME_SIZE,
-                                height: FRAME_SIZE,
-                            }
-                        ]}
-                    >
+            {/* Scan frame (always present when scanning) */}
+            {isFocused && (
+                <View
+                    style={[
+                        styles.scanFrame,
+                        {
+                            position: 'absolute',
+                            left: centerX,
+                            top: centerY,
+                            width: FRAME_SIZE,
+                            height: FRAME_SIZE,
+                        }
+                    ]}
+                >
+                    {!scannedProduct && !isLoading && (
                         <Animated.View
                             style={[
                                 styles.scanLine,
@@ -185,29 +204,43 @@ export default function BarcodeScanner() {
                                 },
                             ]}
                         />
+                    )}
+                </View>
+            )}
+
+            {/* Product container below scan frame */}
+            <View style={[styles.resultContainer, { top: centerY + FRAME_SIZE + 20 }]}>
+                {/* Error message */}
+                {error && (
+                    <View style={styles.errorCard}>
+                        <Text style={styles.errorText}>{error}</Text>
                     </View>
-                </>
-            )}
+                )}
 
-            {/* Rest of your component (loading state and product display) */}
-            {isLoading && (
-                <View style={styles.loadingContainer}>
-                    <Text>Loading product information...</Text>
-                </View>
-            )}
+                {/* Loading state */}
+                {isLoading && (
+                    <View style={styles.loadingCard}>
+                        <ActivityIndicator size="small" color="#00AA5B" />
+                        <Text style={styles.loadingText}>Loading product information...</Text>
+                    </View>
+                )}
 
-            {scannedProduct && (
-                <View style={styles.productContainer}>
-                    <ProductCard
-                        product={scannedProduct}
-                        onRemove={handleRemoveProduct}
-                    />
-                    <Button
-                        title="Scan Another Product"
-                        onPress={handleRemoveProduct}
-                    />
-                </View>
-            )}
+                {/* Product display */}
+                {scannedProduct && (
+                    <View>
+                        <ProductCard
+                            product={scannedProduct}
+                            onRemove={handleRemoveProduct}
+                        />
+                        <TouchableOpacity 
+                            style={styles.scanAgainButton} 
+                            onPress={handleRemoveProduct}
+                        >
+                            <Text style={styles.buttonText}>Scan Another Product</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
         </View>
     );
 }
@@ -215,6 +248,7 @@ export default function BarcodeScanner() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#fff',
     },
     scanFrame: {
         borderRadius: BORDER_RADIUS,
@@ -228,15 +262,87 @@ const styles = StyleSheet.create({
         backgroundColor: '#00FF00',
         position: 'absolute',
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'white',
+    resultContainer: {
+        position: 'absolute',
+        left: 24,
+        right: 24,
     },
-    productContainer: {
-        flex: 1,
-        padding: 16,
+    loadingCard: {
         backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+        }),
+    },
+    loadingText: {
+        fontFamily: 'Inter-Regular',
+        fontSize: 14,
+        marginLeft: 10,
+        color: '#333',
+    },
+    errorCard: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF6B6B',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+        }),
+    },
+    errorText: {
+        fontFamily: 'Inter-Regular',
+        fontSize: 14,
+        color: '#333',
+    },
+    permissionText: {
+        fontFamily: 'Inter-Regular',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+    button: {
+        backgroundColor: '#00AA5B',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 20,
+        alignItems: 'center',
+        marginTop: 16,
+        marginHorizontal: 20,
+    },
+    scanAgainButton: {
+        backgroundColor: '#00AA5B',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 20,
+        alignItems: 'center',
+        marginTop: 16,
+        marginBottom: 16,
+    },
+    buttonText: {
+        color: 'white',
+        fontFamily: 'Inter-SemiBold',
+        fontSize: 16,
     },
 });
