@@ -11,7 +11,7 @@ export default function TabLayout() {
             }}
             tabBar={(props) => <CustomTabBar {...props} />}
         >
-            <Tabs.Screen name="recipe" />
+            <Tabs.Screen name="recipes" />
             <Tabs.Screen name="shoppingCart" />
             <Tabs.Screen name="barCodeScanner" />
             <Tabs.Screen name="search" />

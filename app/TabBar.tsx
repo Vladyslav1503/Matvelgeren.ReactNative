@@ -33,7 +33,7 @@ if (height >= 890 && height < 910) {
 }
 
 const tabs = [
-    { label: 'Recipe', route: 'recipe', Icon: RecipeIcon },
+    { label: 'Recipe', route: 'recipes', Icon: RecipeIcon },
     { label: 'Shop', route: 'shoppingCart', Icon: ShoppingCartIcon },
     { label: 'Scan', route: 'barCodeScanner', Icon: ScanIcon },
     { label: 'Search', route: 'search', Icon: SearchIcon },
