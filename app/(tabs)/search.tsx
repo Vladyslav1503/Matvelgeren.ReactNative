@@ -333,10 +333,10 @@ export default function Search() {
             );
         }
 
-        // Filter by labels
+        // Filter by labels - FIXED: Item must have ALL selected labels
         if (selectedLabels.length > 0) {
             filtered = filtered.filter(item =>
-                selectedLabels.some(selectedLabel =>
+                selectedLabels.every(selectedLabel =>
                     item.labels.includes(selectedLabel)
                 )
             );
