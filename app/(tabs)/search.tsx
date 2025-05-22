@@ -309,22 +309,22 @@ export default function Search() {
             return [];
         }
 
-        let filtered = allItems;
+        // Start with recipes and API products separately
+        let filteredRecipes = sampleRecipes;
+        let filteredProducts = apiProducts;
 
-        // Filter by search query (for recipes, search in name; products are already filtered by API)
+        // Filter recipes by search query if there's a search term
         if (searchQuery.trim() !== '') {
-            filtered = filtered.filter(item => {
-                // For recipes, filter by name and labels
-                if (item.type === 'recipe') {
-                    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.labels.some(label =>
-                            label.toLowerCase().includes(searchQuery.toLowerCase())
-                        );
-                }
-                // For products, they're already filtered by API search
-                return true;
-            });
+            filteredRecipes = sampleRecipes.filter(recipe =>
+                recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                recipe.labels.some(label =>
+                    label.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+            );
         }
+
+        // Combine filtered recipes with API products
+        let filtered: SearchItem[] = [...filteredRecipes, ...filteredProducts];
 
         // Filter by type
         if (selectedFilter !== 'all') {
@@ -343,7 +343,7 @@ export default function Search() {
         }
 
         return filtered;
-    }, [searchQuery, selectedFilter, selectedLabels, hasActiveFilters, allItems]);
+    }, [searchQuery, selectedFilter, selectedLabels, hasActiveFilters, apiProducts]);
 
     // Group filtered items by type for display
     const recipes = filteredItems.filter(item => item.type === 'recipe') as Recipe[];
