@@ -338,7 +338,7 @@ function extractVendorFromDescription(description?: string): string | null {
 }
 
 // Helper function to determine product labels based on nutrition data
-function determineProductLabels(nutritionMap: Map<string, number>): string[] {
+export function determineProductLabels(nutritionMap: Map<string, number>): string[] {
     const labels: string[] = [];
 
     if (nutritionMap.size === 0) return labels;

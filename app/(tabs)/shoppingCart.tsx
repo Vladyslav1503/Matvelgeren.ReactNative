@@ -11,15 +11,17 @@ import {
     ActivityIndicator,
     FlatList
 } from "react-native";
-import {searchProducts} from '@/api/kassalappAPI'
+import { useFocusEffect } from '@react-navigation/native';
+import { searchProducts } from '@/api/kassalappAPI';
+import { favoritesStorage, FavoriteProduct } from '@/utils/shoppingStorage';
 
 import SearchIcon from '../../assets/icons/search.svg';
-import  ProductCard  from '../../components/ProductCard'
+import ProductCard from '../../components/ProductCard';
 
-//  data types
+// Data types
 interface Product {
     id: string;
-    ean?: string;
+    ean: string;
     name: string;
     calories?: number;
     protein?: number;
@@ -81,6 +83,25 @@ interface ApiProduct {
     created_at: string;
     updated_at: string;
 }
+
+// Function to convert stored favorite to our Product interface
+const convertFavoriteToProduct = (favorite: FavoriteProduct): Product => {
+    return {
+        id: favorite.id,
+        name: favorite.name,
+        brand: favorite.brand,
+        price: favorite.current_price?.price || 0,
+        imageUrl: favorite.image || '/api/placeholder/150/150',
+        store: favorite.store?.name,
+        ean: favorite.ean || '',
+        calories: favorite.calories || 0,
+        protein: favorite.protein || 0,
+        fat: favorite.fat || 0,
+        carbs: favorite.carbs || 0,
+        sugar: favorite.sugar || 0,
+        labels: favorite.labels || [],
+    };
+};
 
 // Function to convert API product to our Product interface
 const convertApiProductToProduct = (apiProduct: ApiProduct): Product => {
@@ -178,47 +199,6 @@ const determineProductLabels = (nutritionMap: Map<string, number>): string[] => 
     return labels;
 };
 
-// Sample product data
-const sampleProducts: Product[] = [
-    {
-        id: '1',
-        name: 'Monster energy drink zero ultra 500 ml',
-        calories: 10,
-        protein: 0,
-        fat: 0,
-        carbs: 3,
-        sugar: 600,
-        price: 20.99,
-        labels: ['Unhealthy', 'High sugar'],
-        imageUrl: '/api/placeholder/150/150',
-        ean: '1234567890123'
-    },
-    {
-        id: '2',
-        name: 'Sørlandchips CHILL Chilinøtter Buffalo Reaper',
-        calories: 512,
-        protein: 6,
-        fat: 30,
-        carbs: 50,
-        price: 20.99,
-        labels: ['Unhealthy', 'High calorie'],
-        imageUrl: '/api/placeholder/150/150',
-        ean: '2345678901234'
-    },
-    {
-        id: '3',
-        name: 'Gartner SNACKS-GULROT',
-        calories: 45,
-        protein: 1,
-        fat: 0,
-        carbs: 10,
-        price: 20.99,
-        labels: ['Healthy', 'Vegan'],
-        imageUrl: '/api/placeholder/150/150',
-        ean: '3456789012345'
-    }
-];
-
 const { width, height } = Dimensions.get('window');
 console.log(height);
 let TOTAL_SUM_CONTAINER_MARGIN_BOTTOM = (height >= 890) ? height * 0.07 : height * 0.05;
@@ -250,14 +230,41 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function ShoppingCart() {
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [products, setProducts] = useState<Product[]>(sampleProducts);
+    const [products, setProducts] = useState<Product[]>([]);
     const [searchResults, setSearchResults] = useState<Product[]>([]);
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Debounce search query to avoid too many API calls
     const debouncedSearchQuery = useDebounce(searchQuery, 500); // 500ms delay
+
+    // Load stored products on component mount and when screen comes into focus
+    useEffect(() => {
+        loadStoredProducts();
+    }, []);
+
+    // Reload products whenever screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            loadStoredProducts();
+        }, [])
+    );
+
+    // Load products from storage
+    const loadStoredProducts = async (): Promise<void> => {
+        try {
+            setIsLoading(true);
+            const storedFavorites = await favoritesStorage.getFavorites();
+            const convertedProducts = storedFavorites.map(convertFavoriteToProduct);
+            setProducts(convertedProducts);
+        } catch (error) {
+            console.error('Error loading stored products:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // Effect to handle search
     useEffect(() => {
@@ -320,23 +327,17 @@ export default function ShoppingCart() {
         }
     };
 
-    // Add product to cart
-    const addToCart = (product: Product): void => {
-        // Check if product already exists in cart
-        const existingProduct = products.find((p: Product) => p.id === product.id);
-        if (!existingProduct) {
-            setProducts([...products, product]);
-        }
-
-        // Clear search after adding
-        setSearchQuery('');
-        setShowSearchResults(false);
-        setSearchResults([]);
-    };
-
     // Remove product function
-    const removeProduct = (id: string): void => {
-        setProducts(products.filter((product: Product) => product.id !== id));
+    const removeProduct = async (id: string): Promise<void> => {
+        try {
+            const success = await favoritesStorage.removeFavorite(id);
+            if (success) {
+                // Update local state immediately
+                setProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+            }
+        } catch (error) {
+            console.error('Error removing product:', error);
+        }
     };
 
     // Calculate total price
@@ -349,7 +350,6 @@ export default function ShoppingCart() {
     const renderSearchResult = ({ item }: { item: Product }) => (
         <TouchableOpacity
             style={styles.searchResultItem}
-            onPress={() => addToCart(item)}
         >
             <ProductCard
                 product={item}
@@ -359,6 +359,16 @@ export default function ShoppingCart() {
             />
         </TouchableOpacity>
     );
+
+    // Show loading state while products are being loaded
+    if (isLoading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#666" />
+                <Text style={styles.loadingText}>Loading your cart...</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -463,6 +473,16 @@ const styles = StyleSheet.create({
         paddingRight: 24,
         paddingBottom: 20,
         backgroundColor: '#fff',
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+        fontFamily: 'Inter-Regular',
+        color: '#666',
     },
     title: {
         fontSize: 24,

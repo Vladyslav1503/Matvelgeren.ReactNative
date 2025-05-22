@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     Image,
     Dimensions,
-    Platform,
+    Platform, Alert,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -24,10 +24,13 @@ import Heart from '../../assets/icons/heart.svg';
 // Import the parser functions
 import { mapApiResponseToProduct, formatPriceHistoryForChart } from '@/utils/nutritionParser';
 
+import { favoritesStorage, FavoriteProduct } from '@/utils/shoppingStorage';
+
 const { width } = Dimensions.get('window');
 
 // Define the product interface
 interface Product {
+    sugar?: number;
     id: string;
     name: string;
     vendor: string;
@@ -167,11 +170,76 @@ export default function Product() {
         }
     };
 
-    const handleToggleFavorite = () => {
-        setIsFavorite(!isFavorite);
-        // This is where you would implement the cart/favorite logic
-        console.log('Toggle favorite:', product?.name, !isFavorite ? 'Added to cart' : 'Removed from cart');
-        // You can integrate with your cart state here
+    const handleToggleFavorite = async () => {
+        if (!product) return;
+
+        try {
+            if (isFavorite) {
+                // Remove from favorites
+                const success = await favoritesStorage.removeFavorite(product.id);
+                if (success) {
+                    setIsFavorite(false);
+                    console.log('Removed from favorites:', product.name);
+                } else {
+                    Alert.alert('Error', 'Failed to remove from favorites');
+                }
+            } else {
+                // Add to favorites with complete nutrition data and labels
+                const favoriteProduct: FavoriteProduct = {
+                    id: product.id,
+                    name: product.name,
+                    brand: product.brand || '',
+                    vendor: product.vendor || '',
+                    image: product.image || '',
+                    current_price: product.current_price || { price: 0 },
+                    store: product.store || { name: '' },
+                    ean: ean || '',
+                    dateAdded: new Date().toISOString(),
+
+                    // Required nutrition data - ensure all are numbers
+                    calories: product.calories || 0,
+                    protein: product.protein || 0,
+                    fat: product.fat || 0,
+                    carbs: product.carbs || 0,
+
+                    // Optional nutrition data
+                    sugar: product.sugar || 0,
+
+                    // Required arrays - ensure they are always arrays
+                    labels: Array.isArray(product.labels) ? product.labels : [],
+                    allergens: Array.isArray(product.allergens) ? product.allergens : [],
+
+                    // Optional additional data
+                    description: product.description,
+                    ingredients: product.ingredients,
+                    category: product.category,
+                    price_history: product.price_history,
+                };
+
+                console.log('Attempting to save favorite with data:', {
+                    name: favoriteProduct.name,
+                    nutrition: {
+                        calories: favoriteProduct.calories,
+                        protein: favoriteProduct.protein,
+                        fat: favoriteProduct.fat,
+                        carbs: favoriteProduct.carbs
+                    },
+                    labels: favoriteProduct.labels,
+                    allergens: favoriteProduct.allergens
+                });
+
+                const success = await favoritesStorage.addFavorite(favoriteProduct);
+                if (success) {
+                    setIsFavorite(true);
+                    console.log('Added to favorites with complete data:', product.name);
+                } else {
+                    Alert.alert('Error', 'Failed to add to favorites');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            Alert.alert('Error', 'Something went wrong. Please try again.');
+        }
     };
 
     const handleGoBack = () => {
