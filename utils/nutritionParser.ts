@@ -1,20 +1,22 @@
-﻿// Define types for the API response nutrition data
-interface NutritionItem {
-    amount: number;
-    code: string;
-    display_name: string;
-    unit: string;
-}
+﻿// nutritionParser.ts
 
 interface ApiProduct {
-    name?: string;
-    current_price?: {
+    id: string;
+    name: string;
+    current_price: {
         price: number;
-        currency?: string;
+        unit_price?: number;
+        date?: string;
     };
-    image_url?: string;
+    image?: string;
     brand?: string;
     description?: string;
+    store?: {
+        name: string;
+        logo?: string;
+    };
+    weight?: number;
+    weight_unit?: string;
     [key: string]: any; // Allow for additional fields
 }
 
@@ -22,176 +24,216 @@ interface ApiResponse {
     data: {
         ean: string;
         products: ApiProduct[];
-        nutrition: NutritionItem[];
+        nutrition: any[];
     };
 }
 
-// Define the structure we want to return that matches ProductCard expectations
-interface ParsedNutrition {
+interface Product {
+    id: string;
+    name: string;
     calories?: number;
     protein?: number;
     fat?: number;
     carbs?: number;
     sugar?: number;
-    salt?: number;
-    saturatedFat?: number;
-    // Add more fields if needed for your ProductCard
+    price: number;
+    labels: string[];
+    imageUrl: string;
+    store?: string;
+    storeLogo?: string;
+    description?: string;
+    brand?: string;
+    weight?: string;
 }
 
-/**
- * Parses nutrition data from the API response into a format compatible with ProductCard
- *
- * @param nutritionData - Array of nutrition items from the API
- * @returns ParsedNutrition object with values matched to ProductCard requirements
- */
-export const parseNutrition = (nutritionData: NutritionItem[]): ParsedNutrition => {
-    // Initialize empty result
-    const result: ParsedNutrition = {};
+interface NutritionItem {
+    amount: number;
+    code: string;
+    display_name: string;
+    unit: string;
+}
 
-    // Map through nutrition data to extract relevant information
-    nutritionData.forEach(item => {
-        switch (item.code) {
-            case 'energi_kcal':
-                result.calories = item.amount;
-                break;
-            case 'protein':
-                result.protein = item.amount;
-                break;
-            case 'fett_totalt':
-                result.fat = item.amount;
-                break;
-            case 'karbohydrater':
-                result.carbs = item.amount;
-                break;
-            case 'sukkerarter':
-                result.sugar = item.amount;
-                break;
-            case 'salt':
-                result.salt = item.amount;
-                break;
-            case 'mettet_fett':
-                result.saturatedFat = item.amount;
-                break;
-            // Add more cases if needed
-        }
-    });
+// Helper function to check if an image URL is valid
+async function isImageValid(url: string | undefined): Promise<boolean> {
+    if (!url) return false;
 
-    return result;
-};
-
-/**
- * Example of how to use this parser with your API data
- *
- * @param apiResponse - The full API response from fetchProductByEAN
- * @returns An object that can be used with your ProductCard component
- */
-export const mapApiResponseToProductCard = (apiResponse: ApiResponse): any => {
     try {
-        // Extract necessary data from API response
-        const { data } = apiResponse;
-
-        if (!data || !data.nutrition) {
-            console.warn('Invalid API response structure');
-            return null;
-        }
-
-        const product = data.products && data.products.length > 0 ? data.products[0] : null;
-
-        // If no product found, return null or some default data
-        if (!product) {
-            console.warn('No product found in API response');
-            return {
-                id: data.ean || 'unknown',
-                name: 'Unknown Product',
-                price: 0,
-                labels: ['Unknown'],
-                imageUrl: '',
-            };
-        }
-
-        // Parse nutrition data
-        const nutrition = parseNutrition(data.nutrition || []);
-
-        // Create a product object compatible with your ProductCard
-        return {
-            id: data.ean || 'unknown',
-            name: product.name || 'Unknown Product',
-            price: product.current_price?.price || 0,
-            labels: determineLabels(nutrition),
-            imageUrl: product.image || '',
-            brand: product.brand || '',
-            description: product.description || '',
-            ...nutrition
-        };
+        const response = await fetch(url, { method: 'HEAD' });
+        const contentType = response.headers.get('content-type');
+        return response.ok && !!contentType && contentType.startsWith('image/');
     } catch (error) {
-        console.error('Error mapping API response to ProductCard:', error);
+        console.log('Image validation error:', error);
+        return false;
+    }
+}
+
+// Function to find the best product from the list
+export async function mapApiResponseToProductCard(apiResponse: ApiResponse): Promise<Product | null> {
+    if (!apiResponse?.data?.products || apiResponse.data.products.length === 0) {
+        console.log('No products found in API response');
         return null;
     }
-};
 
-/**
- * Helper function to determine product labels based on nutrition values
- * You can customize this logic based on your requirements
- */
-const determineLabels = (nutrition: ParsedNutrition): string[] => {
+    const { products, nutrition } = apiResponse.data;
+
+    // Extract nutrition data if available
+    const nutritionData = nutrition && nutrition.length > 0 ? nutrition : null;
+    
+    // First, try to find a product with a valid image
+    for (const product of products) {
+        if (!product.image) continue;
+        
+        // Check if the image is valid
+        const imageValid = await isImageValid(product.image);
+        if (!imageValid) continue;
+        
+        // Found a product with valid image
+        return createProductFromApiData(product, nutritionData);
+    }
+
+    // If no product with valid image found, use the first product without image validation
+    return createProductFromApiData(products[0], nutritionData);
+}
+
+// Helper function to create a product object from API data
+function createProductFromApiData(product: ApiProduct, nutritionItems: NutritionItem[] | null): Product {
+    // Extract basic product info
+    const productInfo: Product = {
+        id: product.id.toString(),
+        name: product.name || 'Unknown Product',
+        price: product.current_price?.price || 0,
+        labels: [], // Will be populated based on nutrition data
+        imageUrl: product.image || 'https://placeholder-image.com/150x150', // Fallback image
+    };
+    
+    // Add store information if available
+    if (product.store) {
+        productInfo.store = product.store.name;
+        productInfo.storeLogo = product.store.logo;
+    }
+    
+    // Add additional product details
+    productInfo.description = product.description || '';
+    productInfo.brand = product.brand || '';
+    
+    // Add weight information if available
+    if (product.weight && product.weight_unit) {
+        productInfo.weight = `${product.weight}${product.weight_unit}`;
+    }
+    
+    // Parse nutrition data if available
+    if (nutritionItems && nutritionItems.length > 0) {
+        // Map nutrition codes to our product fields
+        const nutritionMap = new Map<string, number>();
+        
+        // First, build a map of all nutrition values
+        nutritionItems.forEach(item => {
+            nutritionMap.set(item.code, item.amount);
+        });
+        
+        // Map the nutrition codes to our product properties
+        productInfo.calories = nutritionMap.get('energi_kcal');
+        productInfo.protein = nutritionMap.get('protein');
+        productInfo.fat = nutritionMap.get('fett_totalt');
+        productInfo.carbs = nutritionMap.get('karbohydrater');
+        productInfo.sugar = nutritionMap.get('sukkerarter');
+        
+        // Generate labels based on nutrition values
+        productInfo.labels = determineProductLabels(nutritionMap);
+    }
+    
+    return productInfo;
+}
+
+// Helper function to determine product labels based on nutrition data
+function determineProductLabels(nutritionMap: Map<string, number>): string[] {
     const labels: string[] = [];
-
-    // Check for healthy/unhealthy based on multiple factors
-    let healthScore = 0;
-
-    // Positive factors
-    if (nutrition.protein && nutrition.protein > 10) healthScore += 2;
-    if (nutrition.fat && nutrition.fat < 5) healthScore += 1;
-    if (nutrition.sugar && nutrition.sugar < 5) healthScore += 1;
-    if (nutrition.saturatedFat && nutrition.saturatedFat < 2) healthScore += 1;
-    if (nutrition.salt && nutrition.salt < 0.3) healthScore += 1;
-
-    // Negative factors
-    if (nutrition.sugar && nutrition.sugar > 10) healthScore -= 2;
-    if (nutrition.saturatedFat && nutrition.saturatedFat > 5) healthScore -= 2;
-    if (nutrition.fat && nutrition.fat > 17.5) healthScore -= 1;
-    if (nutrition.salt && nutrition.salt > 1.5) healthScore -= 1;
-
-    // Assign label based on health score
-    if (healthScore >= 3) {
+    
+    if (nutritionMap.size === 0) return labels;
+    
+    // Get nutrition values with proper null checks
+    const calories = nutritionMap.get('energi_kcal') || 0;
+    const sugar = nutritionMap.get('sukkerarter') || 0;
+    const fat = nutritionMap.get('fett_totalt') || 0;
+    const protein = nutritionMap.get('protein') || 0;
+    
+    // Check for high sugar content (per 100g)
+    if (sugar > 15) {
+        labels.push('High sugar');
+    }
+    
+    // Check for high fat content (per 100g)
+    if (fat > 17.5) {
+        labels.push('High fat');
+    }
+    
+    // Check for high calorie content (per 100g)
+    if (calories > 300) {
+        labels.push('High calorie');
+    }
+    
+    // Check for high protein content (per 100g)
+    if (protein > 20) {
+        labels.push('High protein');
+    }
+    
+    // Add health label based on overall profile
+    if (labels.length === 0 && calories < 200 && fat < 10) {
         labels.push('Healthy');
-    } else if (healthScore <= -3) {
+    } else if (labels.length > 0) {
         labels.push('Unhealthy');
     }
-
-    // Check for ultra-processed (simplified logic)
-    if (nutrition.salt && nutrition.salt > 1 && nutrition.sugar && nutrition.sugar > 10) {
-        labels.push('Ultra-Processed');
-    }
-
-    // This logic follows nutritional guidelines - adjust as needed for your app
-    if (nutrition.calories !== undefined) {
-        if (nutrition.calories <= 40) {
-            labels.push('Low Calorie');
-        } else if (nutrition.calories >= 200) {
-            labels.push('High Calorie');
-        }
-    }
-
-    if (nutrition.fat !== undefined) {
-        if (nutrition.fat <= 1) {
-            labels.push('Low Fat');
-        } else if (nutrition.fat >= 17.5) {
-            labels.push('High Fat');
-        }
-    }
-
-    if (nutrition.sugar !== undefined) {
-        if (nutrition.sugar >= 10) {
-            labels.push('High Sugar');
-        } else if (nutrition.sugar <= 2) {
-            labels.push('Low Sugar');
-        }
-    }
-
-    if (nutrition.carbs !== undefined && nutrition.carbs <= 1) {
-        labels.push('No Carbs');
-    }
-
+    
     return labels;
-};
+}
+
+// More efficient version with Promise.all for concurrent image checking
+export async function mapApiResponseToProductCardEfficient(apiResponse: ApiResponse): Promise<Product | null> {
+    if (!apiResponse?.data?.products || apiResponse.data.products.length === 0) {
+        console.log('No products found in API response');
+        return null;
+    }
+
+    const { products, nutrition } = apiResponse.data;
+    const nutritionData = nutrition && nutrition.length > 0 ? nutrition : null;
+    
+    // Create an array of products with image URLs
+    const productsWithImages = products.filter(product => product.image);
+    
+    if (productsWithImages.length === 0) {
+        // If no products have images, just use the first product
+        return createProductFromApiData(products[0], nutritionData);
+    }
+    
+    try {
+        // Check all images concurrently
+        const imageValidationPromises = productsWithImages.map(product => 
+            isImageValid(product.image).then(isValid => ({ product, isValid }))
+        );
+        
+        // Wait for all image validations to complete
+        const validationResults = await Promise.all(imageValidationPromises);
+        
+        // Find the first product with a valid image
+        const productWithValidImage = validationResults.find(result => result.isValid);
+        
+        if (productWithValidImage) {
+            return createProductFromApiData(productWithValidImage.product, nutritionData);
+        }
+        
+        // If no valid images found, use the first product
+        return createProductFromApiData(products[0], nutritionData);
+    } catch (error) {
+        console.log('Error validating images:', error);
+        // Fallback to first product if there's an error during image validation
+        return createProductFromApiData(products[0], nutritionData);
+    }
+}
+
+// Function to extract a specific nutrition value by code
+export function getNutritionValue(nutritionItems: NutritionItem[] | null, code: string): number | undefined {
+    if (!nutritionItems) return undefined;
+    
+    const item = nutritionItems.find(item => item.code === code);
+    return item ? item.amount : undefined;
+}
