@@ -29,14 +29,14 @@ interface Recipe {
     imageUrl: string;
 }
 
-// Recipe Card Component
+// Recipe Card
 interface RecipeCardProps {
     recipe: Recipe;
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
     const handleCardPress = () => {
-        // Navigate to recipe page with the recipe ID
+        // Navigate to recipe page with recipe ID
         router.push(`/(tabs)/recipe?id=${recipe.id}`);
     };
 
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 16,
         marginBottom: 16,
-        overflow: 'hidden', // Ensure the image doesn't overflow the rounded corners
+        overflow: 'hidden', // image wont overflow the corners
         ...Platform.select({
             android: {
                 elevation: 2,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         }),
     },
     imageContainer: {
-        height: 180, // Adjust based on your design needs
+        height: 180,
         width: '100%',
     },
     recipeImage: {
@@ -183,31 +183,31 @@ const styles = StyleSheet.create({
     },
     // Label styles
     veganLabel: {
-        backgroundColor: '#DCEDC8', // Light lime
+        backgroundColor: '#DCEDC8',
     },
     vegetarianLabel: {
-        backgroundColor: '#C8E6C9', // Light green
+        backgroundColor: '#C8E6C9',
     },
     healthyLabel: {
-        backgroundColor: '#C8E6C9', // Light green
+        backgroundColor: '#C8E6C9',
     },
     highProteinLabel: {
-        backgroundColor: '#BBDEFB', // Light blue
+        backgroundColor: '#BBDEFB',
     },
     lowCarbLabel: {
-        backgroundColor: '#F5F5F5', // Light grey
+        backgroundColor: '#F5F5F5',
     },
     glutenFreeLabel: {
-        backgroundColor: '#E1BEE7', // Light purple
+        backgroundColor: '#E1BEE7',
     },
     highFiber: {
-        backgroundColor: '#D7CCC8', // Light brown
+        backgroundColor: '#D7CCC8',
     },
     nutsLabel: {
-        backgroundColor: '#FFE0B2', // Light orange
+        backgroundColor: '#FFE0B2',
     },
     highSugarLabel: {
-        backgroundColor: '#FFCCBC', // Light deep orange
+        backgroundColor: '#FFCCBC',
     },
     labelText: {
         fontSize: 11,
