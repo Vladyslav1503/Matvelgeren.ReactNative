@@ -16,8 +16,8 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-      }
+      "adaptiveIcon": {},
+      "package": "com.anonymous.Matvelgeren"
     },
     "web": {
       "bundler": "metro",
