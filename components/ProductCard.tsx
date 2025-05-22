@@ -4,13 +4,16 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
-    ScrollView, Platform
+    ScrollView,
+    Platform
 } from "react-native";
+import { router } from 'expo-router';
 
 import Fat from '../assets/icons/fat.svg';
 import Calories from '../assets/icons/calories.svg';
 import Protein from '../assets/icons/protein.svg';
 import Carb from '../assets/icons/carb.svg';
+
 // Define types for our data
 interface Product {
     id: string;
@@ -29,11 +32,34 @@ interface Product {
 interface ProductCardProps {
     product: Product;
     onRemove?: (id: string) => void;
+    showRemoveButton?: boolean; // Add this to control when to show remove button
 }
 
-export default function ProductCard({ product, onRemove }: ProductCardProps)  {
+export default function ProductCard({
+                                        product,
+                                        onRemove,
+                                        showRemoveButton = true // Default to true for shopping cart
+                                    }: ProductCardProps) {
+
+    const handleCardPress = () => {
+        // Navigate to product page with the product ID
+        router.push(`/(tabs)/product?id=${product.id}`);
+    };
+
+    const handleRemovePress = (e: any) => {
+        // Stop event propagation to prevent navigation when removing
+        e.stopPropagation();
+        if (onRemove) {
+            onRemove(product.id);
+        }
+    };
+
     return (
-        <View style={styles.productCard}>
+        <TouchableOpacity
+            style={styles.productCard}
+            onPress={handleCardPress}
+            activeOpacity={0.7}
+        >
             {/* Image placeholder - would be replaced with actual Image component */}
             <View style={styles.productImage}>
                 <Text style={styles.imageText}>Product Image</Text>
@@ -62,7 +88,7 @@ export default function ProductCard({ product, onRemove }: ProductCardProps)  {
 
                     {product.fat !== undefined && (
                         <View style={styles.infoItem}>
-                            <Fat width={16} height={16}  style={styles.iconStyle} />
+                            <Fat width={16} height={16} style={styles.iconStyle} />
                             <Text style={styles.infoText}>{product.fat}</Text>
                         </View>
                     )}
@@ -96,13 +122,18 @@ export default function ProductCard({ product, onRemove }: ProductCardProps)  {
 
             {/* Price and remove button */}
             <View style={styles.priceContainer}>
-                <TouchableOpacity onPress={() => onRemove && onRemove(product.id)} style={styles.removeButton}>
-                    {/* Using a text X instead of Ionicon */}
-                    <Text style={styles.removeButtonText}>✕</Text>
-                </TouchableOpacity>
+                {showRemoveButton && onRemove && (
+                    <TouchableOpacity
+                        onPress={handleRemovePress}
+                        style={styles.removeButton}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                )}
                 <Text style={styles.priceText}>{product.price.toFixed(2)} kr</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
@@ -250,6 +281,7 @@ const styles = StyleSheet.create({
     },
     removeButton: {
         paddingRight: 2,
+        padding: 5, // Add padding for better touch target
     },
     removeButtonText: {
         marginTop: -5,
