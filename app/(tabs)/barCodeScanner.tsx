@@ -399,13 +399,14 @@ export default function BarcodeScanner() {
             )}
 
             {/* Scanned product display */}
-            {scannedProduct && (
+            {scannedProduct && lastScannedEAN && (
                 <View style={[
                     styles.resultContainer,
                     { top: centerY + FRAME_HEIGHT + 20, height: safeResultContainerHeight }
                 ]}>
                     <ProductCard
                         product={scannedProduct}
+                        ean={lastScannedEAN}
                         onRemove={handleRemoveProduct}
                     />
                     <TouchableOpacity style={styles.scanAgainButton} onPress={handleRemoveProduct}>

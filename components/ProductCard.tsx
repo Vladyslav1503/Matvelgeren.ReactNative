@@ -9,6 +9,7 @@ import {
     Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { navigateToProduct } from '@/utils/navigationHelper';
 
 import Fat from "../assets/icons/fat.svg";
 import Calories from "../assets/icons/calories.svg";
@@ -30,6 +31,7 @@ interface Product {
 
 interface ProductCardProps {
     product: Product;
+    ean: string;
     onRemove?: (id: string) => void;
     showRemoveButton?: boolean;
 }
@@ -37,11 +39,14 @@ interface ProductCardProps {
 export default function ProductCard({
                                         product,
                                         onRemove,
+                                        ean,
                                         showRemoveButton = true,
                                     }: ProductCardProps) {
     const handleCardPress = () => {
-        // Navigate to product page with the product ID
-        router.push(`/(tabs)/product?id=${product.id}`);
+        // Navigate to product page - prioritize EAN if available
+        navigateToProduct({
+            ean: ean,
+        });
 
     };
 

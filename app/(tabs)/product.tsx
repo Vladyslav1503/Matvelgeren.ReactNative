@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { router, useLocalSearchParams } from 'expo-router';
+import { fetchProductByEAN } from '@/api/kassalappAPI';
 
 // Import your existing SVG icons
 import Fat from '../../assets/icons/fat.svg';
@@ -19,6 +20,9 @@ import Protein from '../../assets/icons/protein.svg';
 import Carb from '../../assets/icons/carb.svg';
 import BackArrow from '../../assets/icons/backarrow.svg';
 import Heart from '../../assets/icons/heart.svg';
+
+// Import the parser functions
+import { mapApiResponseToProduct, formatPriceHistoryForChart } from '@/utils/nutritionParser';
 
 const { width } = Dimensions.get('window');
 
@@ -40,83 +44,24 @@ interface Product {
     fat: number;
     labels: string[];
     allergens: string[];
+    price_history?: Array<{
+        date: string;
+        price: number;
+        store?: string;
+    }>;
 }
 
-// Mock product data - In a real app, this would come from your API
-const mockProducts: Record<string, Product> = {
-    '1': {
-        id: '1',
-        name: "Monster Ultra Paradise 0,5l boks",
-        vendor: "Coca-cola europacific partners norge as",
-        brand: "Monster",
-        description: "Monster Energy Ultra Paradise på 500ml boks uten sukker med vår egen energiblanding og 160mg koffein. Ultra Paradise har en forfriskende smak av kiwi og lime med et hint av agurk.",
-        ingredients: "Kullsyreholdig vann, syre (sitronsyre), taurin (0.4%), surhetsregulerende middel (natriumsitrater), panax ginsengrot-ekstrakt (0.08%), aromaer, konserveringsmidler (kaliumsorbat, natriumbenzoat), søtstoffer (acesulfam k, sukralose), maltodextrin, koffein (0.03%), vitaminer (niacin (vit b3), pantotensyre (vit b5), b6, b12), salt, saflor-ekstrakt, vegetabilske oljer (kokosnøtt, rapsfrø), modifisert stivelse, inositol, fargestoff (e 133).",
-        image: "https://bilder.ngdata.no/5060639126378/kiwi/large.jpg",
-        current_price: { price: 22.6 },
-        store: { name: "KIWI" },
-        category: [{ name: "Energidrikk" }],
-        calories: 10,
-        protein: 0,
-        carbs: 3,
-        fat: 0,
-        labels: ["Unhealthy", "High sugar", "Ultra-processed"],
-        allergens: ["Kan inneholde spor av nøtter", "Kunstige søtstoffer"]
-    },
-    '2': {
-        id: '2',
-        name: "Sørlandschips CHILL Chilinøtter Buffalo Reaper",
-        vendor: "Sørlandschips AS",
-        brand: "Sørlandschips",
-        description: "Crispy and spicy nuts with Buffalo Reaper seasoning for the ultimate heat experience.",
-        ingredients: "Peanuts, rapeseed oil, salt, spices, flavor enhancers.",
-        image: "https://bilder.ngdata.no/example/chips.jpg",
-        current_price: { price: 20.99 },
-        store: { name: "REMA 1000" },
-        category: [{ name: "Snacks" }],
-        calories: 512,
-        protein: 6,
-        carbs: 50,
-        fat: 30,
-        labels: ["Unhealthy", "High calorie"],
-        allergens: ["Peanuts", "May contain traces of other nuts"]
-    },
-    '3': {
-        id: '3',
-        name: "Gartner SNACKS-GULROT",
-        vendor: "Gartner AS",
-        brand: "Gartner",
-        description: "Fresh organic carrots, perfect for healthy snacking.",
-        ingredients: "Organic carrots.",
-        image: "https://bilder.ngdata.no/example/carrots.jpg",
-        current_price: { price: 20.99 },
-        store: { name: "KIWI" },
-        category: [{ name: "Vegetables" }],
-        calories: 45,
-        protein: 1,
-        carbs: 10,
-        fat: 0,
-        labels: ["Healthy", "Vegan"],
-        allergens: []
-    }
-};
-
-// Mock price history data for chart
-const priceHistoryData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "Mai", "Jun"],
-    datasets: [
-        {
-            data: [24.5, 23.9, 22.6, 22.6, 21.9, 22.6],
-            color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
-            strokeWidth: 2
-        },
-        {
-            data: [25.2, 24.8, 24.1, 23.5, 23.2, 23.8],
-            color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
-            strokeWidth: 2
-        }
-    ],
-    legend: ["KIWI", "REMA 1000"]
-};
+// Define store colors
+const STORE_COLORS = [
+    '#3498db', // Blue
+    '#e74c3c', // Red
+    '#2ecc71', // Green
+    '#9b59b6', // Purple
+    '#f39c12', // Orange
+    '#1abc9c', // Teal
+    '#e67e22', // Dark Orange
+    '#34495e', // Dark Gray
+];
 
 // Helper function to get label styles
 const getLabelStyle = (label: string) => {
@@ -126,6 +71,8 @@ const getLabelStyle = (label: string) => {
     if (labelLower === 'high sugar') return styles.highSugarLabel;
     if (labelLower === 'ultra-processed') return styles.ultraprocessed;
     if (labelLower === 'high calorie') return styles.highCalorieLabel;
+    if (labelLower === 'high fat') return styles.highFatLabel;
+    if (labelLower === 'high protein') return styles.highProteinLabel;
     if (labelLower === 'healthy') return styles.healthyLabel;
     if (labelLower === 'vegan') return styles.veganLabel;
     if (labelLower === 'gluten free') return styles.glutenFreeLabel;
@@ -139,21 +86,86 @@ export default function Product() {
     const [isFavorite, setIsFavorite] = useState(false);
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Get the product ID from the URL parameters
-    const { id } = useLocalSearchParams<{ id: string }>();
+    // Get the EAN/ID from the URL parameters
+    const { id, ean, productData } = useLocalSearchParams<{
+        id?: string;
+        ean?: string;
+        productData?: string;
+    }>();
 
     useEffect(() => {
-        // Load product data based on the ID
-        if (id) {
-            // In a real app, you would fetch from your API here
-            const foundProduct = mockProducts[id];
-            if (foundProduct) {
-                setProduct(foundProduct);
+        loadProductData();
+    }, [id, ean, productData]);
+
+    const loadProductData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // First check if we have direct product data passed via navigation
+            if (productData) {
+                try {
+                    const parsedProduct = JSON.parse(decodeURIComponent(productData)) as Product;
+                    setProduct(parsedProduct);
+                    setLoading(false);
+                    return;
+                } catch (parseError) {
+                    console.log('Error parsing product data:', parseError);
+                    // Continue to API fetch if parsing fails
+                }
             }
+
+            // Determine what identifier to use for API call
+            const productIdentifier = ean;
+
+            if (!productIdentifier) {
+                setError('No product identifier provided');
+                setLoading(false);
+                return;
+            }
+
+            console.log('Fetching product with EAN:', productIdentifier);
+
+            // Fetch from API using EAN - fetchProductByEAN returns data directly, not a Response object
+            const apiResponse = await fetchProductByEAN(productIdentifier);
+
+            console.log('API Response:', apiResponse);
+
+            // Check if we have valid products in the response
+            if (!apiResponse?.data?.products || apiResponse.data.products.length === 0) {
+                setError('Product not found in database');
+                setLoading(false);
+                return;
+            }
+
+            // Use the parser to convert API response to Product format
+            const parsedProduct = await mapApiResponseToProduct(apiResponse);
+
+            if (parsedProduct) {
+                console.log('Parsed product:', parsedProduct);
+                setProduct(parsedProduct);
+            } else {
+                setError('Product not found or could not be parsed');
+            }
+        } catch (err) {
+            console.error('Error loading product:', err);
+
+            // Handle different types of errors
+            if (err instanceof Error) {
+                if (err.message && err.message.includes("No query results for model")) {
+                    setError("This product doesn't exist in our database yet.");
+                } else {
+                    setError(`Failed to load product: ${err.message}`);
+                }
+            } else {
+                setError('Failed to load product data');
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }, [id]);
+    };
 
     const handleToggleFavorite = () => {
         setIsFavorite(!isFavorite);
@@ -167,6 +179,140 @@ export default function Product() {
         router.push('/shoppingCart');
     };
 
+    // Function to format date to show days - optimized for clean display
+    const formatDateToDay = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - date.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return '1d';
+        if (diffDays < 7) return `${diffDays}d`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)}w`;
+        return `${Math.floor(diffDays / 30)}m`;
+    };
+
+    // Function to generate chart data from price history with proper colors and clean labels
+    const generateChartData = () => {
+        if (!product?.price_history || product.price_history.length === 0) {
+            // Return default/empty chart data
+            return {
+                labels: ["No Data"],
+                datasets: [{
+                    data: [product?.current_price.price || 0],
+                    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
+                    strokeWidth: 2
+                }],
+                legend: []
+            };
+        }
+
+        // Filter price history to last 6 months
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const recentPriceHistory = product.price_history.filter(item => {
+            const itemDate = new Date(item.date);
+            return itemDate >= sixMonthsAgo;
+        });
+
+        // If no data in last 6 months, show message
+        if (recentPriceHistory.length === 0) {
+            return {
+                labels: ["No Recent Data"],
+                datasets: [{
+                    data: [product?.current_price.price || 0],
+                    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
+                    strokeWidth: 2
+                }],
+                legend: []
+            };
+        }
+
+        // Group price history by store (only last 6 months)
+        const storeData: { [key: string]: Array<{date: string, price: number}> } = {};
+
+        recentPriceHistory.forEach(item => {
+            const storeName = item.store || product.store.name;
+            if (!storeData[storeName]) {
+                storeData[storeName] = [];
+            }
+            storeData[storeName].push({
+                date: item.date,
+                price: item.price
+            });
+        });
+
+        // Sort each store's data by date
+        Object.keys(storeData).forEach(store => {
+            storeData[store].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        });
+
+        // Create labels from all unique dates in last 6 months, sorted
+        const allDates = [...new Set(recentPriceHistory.map(item => item.date))];
+        allDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        // Limit and space out labels to prevent overlap
+        const maxLabels = 6; // Maximum number of labels to show
+        let labelIndices: number[] = [];
+
+        if (allDates.length <= maxLabels) {
+            labelIndices = allDates.map((_, index) => index);
+        } else {
+            // Distribute labels evenly across the data range
+            const step = Math.floor(allDates.length / (maxLabels - 1));
+            for (let i = 0; i < maxLabels - 1; i++) {
+                labelIndices.push(i * step);
+            }
+            labelIndices.push(allDates.length - 1); // Always include the last point
+        }
+
+        // Create clean labels array with empty strings for non-displayed labels
+        const labels = allDates.map((date, index) => {
+            if (labelIndices.includes(index)) {
+                return formatDateToDay(date);
+            }
+            return ''; // Empty string for labels we don't want to show
+        });
+
+        // Create datasets for each store
+        const datasets = Object.keys(storeData).map((storeName, index) => {
+            const storeColor = STORE_COLORS[index % STORE_COLORS.length];
+
+            // Create data array matching the labels
+            const data = allDates.map(date => {
+                const priceEntry = storeData[storeName].find(entry => entry.date === date);
+                return priceEntry ? priceEntry.price : null;
+            }).filter(price => price !== null);
+
+            return {
+                data: data,
+                color: (opacity = 1) => {
+                    const rgb = hexToRgb(storeColor);
+                    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+                },
+                strokeWidth: 2
+            };
+        });
+
+        return {
+            labels: labels,
+            datasets: datasets,
+            legend: Object.keys(storeData) // Keep unique store names
+        };
+    };
+
+    // Helper function to convert hex to RGB
+    const hexToRgb = (hex: string) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : {r: 52, g: 152, b: 219}; // Default blue
+    };
+
     if (loading) {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
@@ -175,16 +321,18 @@ export default function Product() {
         );
     }
 
-    if (!product) {
+    if (error || !product) {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
-                <Text style={styles.errorText}>Product not found</Text>
+                <Text style={styles.errorText}>{error || 'Product not found'}</Text>
                 <TouchableOpacity style={styles.errorBackButton} onPress={handleGoBack}>
                     <Text style={styles.errorBackButtonText}>Go Back</Text>
                 </TouchableOpacity>
             </View>
         );
     }
+
+    const chartData = generateChartData();
 
     return (
         <View style={styles.container}>
@@ -221,6 +369,18 @@ export default function Product() {
                             {product.name}
                         </Text>
                         <Text style={styles.vendorText}>{product.vendor}</Text>
+
+                        {/* Categories */}
+                        {product.category && product.category.length > 0 && (
+                            <View style={styles.categoryContainer}>
+                                {product.category.map((cat, index) => (
+                                    <Text key={index} style={styles.categoryText}>
+                                        {cat.name}
+                                        {index < product.category.length - 1 ? ' • ' : ''}
+                                    </Text>
+                                ))}
+                            </View>
+                        )}
 
                         {/* Price */}
                         <View style={styles.priceRow}>
@@ -260,30 +420,36 @@ export default function Product() {
                         </View>
 
                         {/* Labels */}
-                        <View style={styles.labelsContainer}>
-                            {product.labels.map((label, index) => (
-                                <View key={index} style={[styles.labelBadge, getLabelStyle(label)]}>
-                                    <Text style={styles.labelText}>{label}</Text>
-                                </View>
-                            ))}
-                        </View>
+                        {product.labels && product.labels.length > 0 && (
+                            <View style={styles.labelsContainer}>
+                                {product.labels.map((label, index) => (
+                                    <View key={index} style={[styles.labelBadge, getLabelStyle(label)]}>
+                                        <Text style={styles.labelText}>{label}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
                     </View>
 
                     {/* Product Information Card */}
                     <View style={styles.infoCard}>
                         <Text style={styles.sectionTitle}>Product Information</Text>
 
-                        <View style={styles.infoSection}>
-                            <Text style={styles.infoLabel}>Description</Text>
-                            <Text style={styles.infoText}>{product.description}</Text>
-                        </View>
+                        {product.description && (
+                            <View style={styles.infoSection}>
+                                <Text style={styles.infoLabel}>Description</Text>
+                                <Text style={styles.infoText}>{product.description}</Text>
+                            </View>
+                        )}
 
-                        <View style={styles.infoSection}>
-                            <Text style={styles.infoLabel}>Ingredients</Text>
-                            <Text style={styles.infoText}>{product.ingredients}</Text>
-                        </View>
+                        {product.ingredients && (
+                            <View style={styles.infoSection}>
+                                <Text style={styles.infoLabel}>Ingredients</Text>
+                                <Text style={styles.infoText}>{product.ingredients}</Text>
+                            </View>
+                        )}
 
-                        {product.allergens.length > 0 && (
+                        {product.allergens && product.allergens.length > 0 && (
                             <View style={styles.infoSection}>
                                 <Text style={styles.infoLabel}>Allergens</Text>
                                 <Text style={styles.infoText}>{product.allergens.join(", ")}</Text>
@@ -293,31 +459,49 @@ export default function Product() {
 
                     {/* Price History Chart Card */}
                     <View style={styles.chartCard}>
-                        <Text style={styles.sectionTitle}>Price Charts</Text>
+                        <Text style={styles.sectionTitle}>Price History (Last 6 Months)</Text>
                         <View style={styles.chartContainer}>
-                            <LineChart
-                                data={priceHistoryData}
-                                width={width - 80}
-                                height={200}
-                                chartConfig={{
-                                    backgroundColor: '#ffffff',
-                                    backgroundGradientFrom: '#ffffff',
-                                    backgroundGradientTo: '#ffffff',
-                                    decimalPlaces: 1,
-                                    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
-                                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                                    style: {
-                                        borderRadius: 16,
-                                    },
-                                    propsForDots: {
-                                        r: "3",
-                                        strokeWidth: "1",
-                                    }
-                                }}
-                                bezier
-                                style={styles.chart}
-                            />
+                            {chartData.datasets.length > 0 && chartData.labels.length > 0 && (
+                                <LineChart
+                                    data={chartData}
+                                    width={width - 80}
+                                    height={200}
+                                    chartConfig={{
+                                        backgroundColor: '#ffffff',
+                                        backgroundGradientFrom: '#ffffff',
+                                        backgroundGradientTo: '#ffffff',
+                                        decimalPlaces: 1,
+                                        color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
+                                        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                        style: {
+                                            borderRadius: 16,
+                                        },
+                                        propsForDots: {
+                                            r: "3",
+                                            strokeWidth: "1",
+                                        },
+                                        propsForLabels: {
+                                            fontSize: 10,
+                                        }
+                                    }}
+                                    bezier
+                                    style={styles.chart}
+                                    withVerticalLabels={true}
+                                    withHorizontalLabels={true}
+                                />
+                            )}
+                            {(!chartData.datasets.length || !chartData.labels.length || chartData.labels[0] === "No Data" || chartData.labels[0] === "No Recent Data") && (
+                                <View style={styles.noChartData}>
+                                    <Text style={styles.noChartText}>
+                                        {chartData.labels[0] === "No Recent Data"
+                                            ? "No price history in the last 6 months"
+                                            : "No price history available"}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
+
+
                     </View>
                 </View>
 
@@ -347,6 +531,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter-Regular',
         color: '#e74c3c',
         marginBottom: 20,
+        textAlign: 'center',
+        paddingHorizontal: 20,
     },
     errorBackButton: {
         backgroundColor: '#3498db',
@@ -367,7 +553,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 24,
-        paddingTop: 48, // Account for status bar
+        paddingTop: 48,
         paddingBottom: 16,
         backgroundColor: '#f8f9fa',
     },
@@ -438,7 +624,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Inter-Regular',
         color: '#666',
+        marginBottom: 8,
+    },
+    categoryContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         marginBottom: 16,
+    },
+    categoryText: {
+        fontSize: 12,
+        fontFamily: 'Inter-Medium',
+        color: '#666',
     },
     priceRow: {
         flexDirection: 'row',
@@ -508,7 +704,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter-Medium',
         color: '#333',
     },
-    // Label styles
     unhealthyLabel: {
         backgroundColor: '#FFCDD2',
     },
@@ -520,6 +715,12 @@ const styles = StyleSheet.create({
     },
     highCalorieLabel: {
         backgroundColor: '#FFD180',
+    },
+    highFatLabel: {
+        backgroundColor: '#FFAB91',
+    },
+    highProteinLabel: {
+        backgroundColor: '#C5E1A5',
     },
     healthyLabel: {
         backgroundColor: '#C8E6C9',
@@ -566,6 +767,42 @@ const styles = StyleSheet.create({
     chart: {
         marginVertical: 8,
         borderRadius: 16,
+    },
+    noChartData: {
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 16,
+        width: width - 80,
+    },
+    noChartText: {
+        fontSize: 14,
+        fontFamily: 'Inter-Regular',
+        color: '#666',
+    },
+    chartLegend: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 12,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 8,
+        marginVertical: 4,
+    },
+    legendColor: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        marginRight: 6,
+    },
+    legendText: {
+        fontSize: 12,
+        fontFamily: 'Inter-Regular',
+        color: '#666',
     },
     bottomSpacing: {
         height: 40,
