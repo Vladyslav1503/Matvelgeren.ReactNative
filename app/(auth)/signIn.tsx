@@ -121,12 +121,17 @@ export default function SignIn() {
                      onChangeText={setPassword}
                      style={styles.passwordInput}
                  />
-                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                 <TouchableOpacity
+                     onPress={() => setShowPassword(!showPassword)}
+                     style={styles.eyeIcon}
+                     accessibilityRole="button"
+                     accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                 >
                      {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
                  </TouchableOpacity>
              </View>
 
-             <TouchableOpacity onPress={() => router.push('/forgotPassword')}>
+             <TouchableOpacity onPress={() => router.push('/forgotPassword')} testID="button">
                  <Text style={styles.forgotPassword}>Forgot your password?</Text>
              </TouchableOpacity>
 
