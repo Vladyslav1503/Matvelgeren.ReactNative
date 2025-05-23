@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import {supabase} from "@/lib/supabase";
 
 // Import SVG icons
 // Note: You'll need to create/import these SVG files in your assets/icons folder
@@ -81,7 +82,8 @@ export default function Profile() {
     const handleSignOut = (): void => {
         // Mock sign out - will be replaced with real functionality later
         Alert.alert("Sign Out", "User signed out successfully");
-        router.replace("/signIn");
+        supabase.auth.signOut();
+        router.replace("/");
         setShowSettings(false);
     };
 
