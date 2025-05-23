@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "#FFF",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
         zIndex: 100,
     },
     settingsMenu: {
