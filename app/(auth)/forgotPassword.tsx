@@ -43,6 +43,11 @@ export default function ForgotPassword() {
             <TouchableOpacity style={styles.button} onPress={handleSendResetCode}>
                 <Text style={styles.buttonText}>Send Code</Text>
             </TouchableOpacity>
+
+            <View style={styles.linkContainer}>
+                <Text style={styles.linkTextGray}>Go back to </Text>
+                <Text style={styles.linkTextBlue} onPress={() => router.replace('/signIn')}>Sign in</Text>
+            </View>
         </View>
     );
 }
@@ -90,5 +95,20 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontFamily: 'Inter-SemiBold',
         fontSize: 15
-    }
+    },
+    linkContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 10
+    },
+    linkTextGray: {
+        color: '#838383',
+        fontFamily: 'Inter-Regular',
+        fontSize: 13
+    },
+    linkTextBlue: {
+        color: '#4578E5',
+        fontFamily: 'Inter-SemiBold',
+        fontSize: 13
+    },
 });

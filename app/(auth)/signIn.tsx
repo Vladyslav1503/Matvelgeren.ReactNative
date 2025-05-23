@@ -49,6 +49,20 @@ export default function SignIn() {
             return Alert.alert("Missing Fields", "Please enter both email and password.");
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert("Please enter a valid email address.");
+            return;
+        }
+
+        // Password validation regex
+        // At least 6 chars, 1 lowercase, 1 uppercase, 1 digit, 1 special character
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+        if (!passwordRegex.test(password)) {
+            Alert.alert("Password must be at least 6 characters long and include lowercase, uppercase, number, and special character.");
+            return;
+        }
+
         setLoading(true);
         showLoader();
 
@@ -121,12 +135,17 @@ export default function SignIn() {
                      onChangeText={setPassword}
                      style={styles.passwordInput}
                  />
-                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                 <TouchableOpacity
+                     onPress={() => setShowPassword(!showPassword)}
+                     style={styles.eyeIcon}
+                     accessibilityRole="button"
+                     accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                 >
                      {showPassword ? <Eye width={20} height={20} /> : <Closed_Eye width={20} height={20} />}
                  </TouchableOpacity>
              </View>
 
-             <TouchableOpacity onPress={() => router.push('/forgotPassword')}>
+             <TouchableOpacity onPress={() => router.push('/forgotPassword')} testID="button">
                  <Text style={styles.forgotPassword}>Forgot your password?</Text>
              </TouchableOpacity>
 

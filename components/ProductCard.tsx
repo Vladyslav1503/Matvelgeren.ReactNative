@@ -73,6 +73,7 @@ export default function ProductCard({
 
     return (
         <TouchableOpacity
+            testID="ProductCardTouchable"
             style={styles.productCard}
             onPress={handleCardPress}
             activeOpacity={0.7}
@@ -81,6 +82,7 @@ export default function ProductCard({
                 source={{ uri: product.imageUrl }}
                 style={styles.productImage}
                 resizeMode="contain"
+                testID="product-image"
             />
 
             <View style={styles.productInfo}>
@@ -133,7 +135,7 @@ export default function ProductCard({
 
             <View style={styles.priceContainer}>
                 {showRemoveButton && (
-                    <TouchableOpacity onPress={handleRemovePress} style={styles.removeButton}>
+                    <TouchableOpacity onPress={handleRemovePress} style={styles.removeButton} testID="remove-button">
                         <Text style={styles.removeButtonText}>✕</Text>
                     </TouchableOpacity>
                 )}

@@ -42,6 +42,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
     return (
         <TouchableOpacity
+            testID="recipe-card"
             style={styles.recipeCard}
             onPress={handleCardPress}
             activeOpacity={0.9}
