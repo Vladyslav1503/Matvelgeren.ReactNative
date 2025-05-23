@@ -9,6 +9,7 @@ import {
     Platform,
 } from "react-native";
 import { router } from "expo-router";
+import { navigateToProduct } from '@/utils/navigationHelper';
 
 import Fat from "../assets/icons/fat.svg";
 import Calories from "../assets/icons/calories.svg";
@@ -30,6 +31,7 @@ interface Product {
 
 interface ProductCardProps {
     product: Product;
+    ean: string;
     onRemove?: (id: string) => void;
     showRemoveButton?: boolean;
 }
@@ -37,11 +39,14 @@ interface ProductCardProps {
 export default function ProductCard({
                                         product,
                                         onRemove,
+                                        ean,
                                         showRemoveButton = true,
                                     }: ProductCardProps) {
     const handleCardPress = () => {
-        // Navigate to product page with the product ID
-        router.push(`/(tabs)/product?id=${product.id}`);
+        // Navigate to product page - prioritize EAN if available
+        navigateToProduct({
+            ean: ean,
+        });
 
     };
 
@@ -132,6 +137,7 @@ export default function ProductCard({
                         <Text style={styles.removeButtonText}>✕</Text>
                     </TouchableOpacity>
                 )}
+                {!showRemoveButton && <View style={{ width: 16 }} />}
                 <Text style={styles.priceText}>{product.price.toFixed(2)} kr</Text>
             </View>
         </TouchableOpacity>
@@ -210,8 +216,10 @@ export default function ProductCard({
             marginLeft: 2,
         },
         labelsContainer: {
+            borderRadius: 12,
             flexDirection: 'row',
             flexWrap: 'wrap',
+            overflow: 'hidden',
         },
         labelBadge: {
             paddingHorizontal: 8,
@@ -261,6 +269,7 @@ export default function ProductCard({
             fontSize: 13,
             fontFamily: 'Inter-Regular',
             marginBottom: 0,
+            paddingLeft: 2,
         },
         removeButton: {
             paddingRight: 2,
