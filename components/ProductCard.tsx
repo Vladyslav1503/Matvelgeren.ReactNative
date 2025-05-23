@@ -137,6 +137,7 @@ export default function ProductCard({
                         <Text style={styles.removeButtonText}>✕</Text>
                     </TouchableOpacity>
                 )}
+                {!showRemoveButton && <View style={{ width: 16 }} />}
                 <Text style={styles.priceText}>{product.price.toFixed(2)} kr</Text>
             </View>
         </TouchableOpacity>
@@ -215,8 +216,10 @@ export default function ProductCard({
             marginLeft: 2,
         },
         labelsContainer: {
+            borderRadius: 12,
             flexDirection: 'row',
             flexWrap: 'wrap',
+            overflow: 'hidden',
         },
         labelBadge: {
             paddingHorizontal: 8,
@@ -266,6 +269,7 @@ export default function ProductCard({
             fontSize: 13,
             fontFamily: 'Inter-Regular',
             marginBottom: 0,
+            paddingLeft: 2,
         },
         removeButton: {
             paddingRight: 2,
