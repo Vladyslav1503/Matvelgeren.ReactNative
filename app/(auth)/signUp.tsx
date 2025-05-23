@@ -51,6 +51,20 @@ export default function SignUp() {
             Alert.alert("Please fill out all fields.");
             return;
         }
+        // Email validation regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert("Please enter a valid email address.");
+            return;
+        }
+
+        // Password validation regex
+        // At least 6 chars, 1 lowercase, 1 uppercase, 1 digit, 1 special character
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+        if (!passwordRegex.test(password)) {
+            Alert.alert("Password must be at least 6 characters long and include lowercase, uppercase, number, and special character.");
+            return;
+        }
 
         if (password !== confirmPassword) {
             Alert.alert("Passwords do not match");
