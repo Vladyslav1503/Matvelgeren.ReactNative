@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
-    SafeAreaView
 } from "react-native";
 import { searchProducts } from '@/api/kassalappAPI';
 import { determineProductLabels } from '@/utils/nutritionParser';
@@ -184,11 +183,11 @@ const convertApiProductToProduct = (apiProduct: ApiProduct): Product => {
     return {
         id: apiProduct.id.toString(),
         name: apiProduct.name || 'Unknown Product',
-        calories: nutritionMap.get('energi_kcal'),
-        protein: nutritionMap.get('protein'),
-        fat: nutritionMap.get('fett_totalt'),
-        carbs: nutritionMap.get('karbohydrater'),
-        sugar: nutritionMap.get('sukkerarter'),
+        calories: nutritionMap.get('energi_kcal') || 0,
+        protein: nutritionMap.get('protein') || 0,
+        fat: nutritionMap.get('fett_totalt') || 0,
+        carbs: nutritionMap.get('karbohydrater') || 0,
+        sugar: nutritionMap.get('sukkerarter') || 0,
         price: Number(apiProduct.current_price) || 0,
         labels: labels,
         imageUrl: apiProduct.image || '/api/placeholder/150/150',
@@ -373,7 +372,7 @@ export default function Search() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             {/* Title */}
             <Text style={styles.title}>Search</Text>
 
@@ -505,7 +504,7 @@ export default function Search() {
                     </>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -513,8 +512,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingTop: 20,
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
         paddingBottom: 20,
         backgroundColor: '#fff',
     },

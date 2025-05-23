@@ -14,6 +14,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { searchProducts } from '@/api/kassalappAPI';
 import { favoritesStorage, FavoriteProduct } from '@/utils/shoppingStorage';
+import {determineProductLabels} from "@/utils/nutritionParser";
 
 import SearchIcon from '../../assets/icons/search.svg';
 import ProductCard from '../../components/ProductCard';
@@ -127,11 +128,11 @@ const convertApiProductToProduct = (apiProduct: ApiProduct): Product => {
     return {
         id: apiProduct.id.toString(),
         name: apiProduct.name || 'Unknown Product',
-        calories: nutritionMap.get('energi_kcal'),
-        protein: nutritionMap.get('protein'),
-        fat: nutritionMap.get('fett_totalt'),
-        carbs: nutritionMap.get('karbohydrater'),
-        sugar: nutritionMap.get('sukkerarter'),
+        calories: nutritionMap.get('energi_kcal') || 0,
+        protein: nutritionMap.get('protein') || 0,
+        fat: nutritionMap.get('fett_totalt') || 0,
+        carbs: nutritionMap.get('karbohydrater') || 0,
+        sugar: nutritionMap.get('sukkerarter') || 0,
         price: Number(apiProduct.current_price) || 0,
         labels: labels,
         imageUrl: apiProduct.image || '/api/placeholder/150/150',
@@ -142,61 +143,6 @@ const convertApiProductToProduct = (apiProduct: ApiProduct): Product => {
         weight: weight,
         ean: apiProduct.ean || ''
     };
-};
-
-// Helper function to determine product labels based on nutrition data
-const determineProductLabels = (nutritionMap: Map<string, number>): string[] => {
-    const labels: string[] = [];
-
-    if (nutritionMap.size === 0) return labels;
-
-    // Get nutrition values with proper null checks
-    const calories = nutritionMap.get('energi_kcal') || 0;
-    const sugar = nutritionMap.get('sukkerarter') || 0;
-    const fat = nutritionMap.get('fett_totalt') || 0;
-    const protein = nutritionMap.get('protein') || 0;
-    const carbs = nutritionMap.get('karbohydrater') || 0;
-
-    // Check for high sugar content (per 100g)
-    if (sugar > 15) {
-        labels.push('High sugar');
-    }
-
-    // Check for high fat content (per 100g)
-    if (fat > 17.5) {
-        labels.push('High fat');
-    }
-
-    // Check for high calorie content (per 100g)
-    if (calories > 300) {
-        labels.push('High calorie');
-    }
-
-    // Check for high protein content (per 100g)
-    if (protein > 20) {
-        labels.push('High protein');
-    }
-
-    // Check for low calorie
-    if (calories < 50) {
-        labels.push('Low calorie');
-    }
-
-    // Check for no/low carbs
-    if (carbs < 1) {
-        labels.push('No carbs');
-    } else if (carbs < 5) {
-        labels.push('Low carb');
-    }
-
-    // Add health label based on overall profile
-    if (labels.length === 0 && calories < 200 && fat < 10 && sugar < 10) {
-        labels.push('Healthy');
-    } else if (labels.some((label: string) => ['High sugar', 'High fat', 'High calorie'].includes(label))) {
-        labels.push('Unhealthy');
-    }
-
-    return labels;
 };
 
 const { width, height } = Dimensions.get('window');
@@ -348,7 +294,7 @@ export default function ShoppingCart() {
 
     // Render search result item
     const renderSearchResult = ({ item }: { item: Product }) => (
-        <TouchableOpacity
+        <View
             style={styles.searchResultItem}
         >
             <ProductCard
@@ -357,7 +303,7 @@ export default function ShoppingCart() {
                 onRemove={undefined} // Don't show remove button in search results
                 showRemoveButton={false}
             />
-        </TouchableOpacity>
+        </View>
     );
 
     // Show loading state while products are being loaded

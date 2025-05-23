@@ -175,7 +175,7 @@ export default function Recipes() {
         );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             {/* Title */}
             <Text style={styles.title}>Recipes</Text>
 
@@ -210,7 +210,7 @@ export default function Recipes() {
                     </View>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingTop: 20,
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
         paddingBottom: 20,
         backgroundColor: '#fff',
     },
