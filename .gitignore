@@ -1,5 +1,11 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 .idea
+# Ignore Android build outputs
+/android/
+/android/.gradle/
+/android/app/build/
+/.idea/
+/*.iml
 # dependencies
 node_modules/
 

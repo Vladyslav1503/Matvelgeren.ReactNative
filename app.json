@@ -38,6 +38,25 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "android": {
+        "navigationBar": {
+          "visible": "leanback",
+          "backgroundColor": "#ffffff",
+          "barStyle": "dark-content"
+        },
+        "softwareKeyboardLayoutMode": "pan",
+        "statusBar": {
+          "backgroundColor": "#ffffff",
+          "barStyle": "dark-content",
+          "translucent": false
+        }
+      },
+      "router": {},
+      "eas": {
+        "projectId": "dc162795-f505-4760-b087-6dfbf56f07ae"
+      }
     }
   }
 }

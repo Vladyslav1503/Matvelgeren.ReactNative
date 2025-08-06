@@ -110,12 +110,13 @@ export default function SignUp() {
                 <Text style={styles.title}>Sign Up to a new Account</Text>
                 <Text style={styles.subTitle}>Enter your email and password to sign up</Text>
                 <Text style={styles.instruction}>First Name</Text>
-                <TextInput placeholder="Ola" style={styles.input} onChangeText={setFirstName} />
+                <TextInput placeholder="Ola" style={styles.input} onChangeText={setFirstName} placeholderTextColor="#838383" />
                 <Text style={styles.instruction}>Last Name</Text>
-                <TextInput placeholder="Normann" style={styles.input} onChangeText={setLastName}/>
+                <TextInput placeholder="Normann" style={styles.input} onChangeText={setLastName} placeholderTextColor="#838383"/>
                 <Text style={styles.instruction}>Email</Text>
                 <TextInput
                     placeholder="username@example.com"
+                    placeholderTextColor="#838383"
                     style={styles.input}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -126,6 +127,7 @@ export default function SignUp() {
                 <View style={styles.passwordContainer}>
                     <TextInput
                         placeholder="Password"
+                        placeholderTextColor="#838383"
                         secureTextEntry={!showPassword}
                         style={styles.passwordInput}
                         onChangeText={setPassword}
@@ -138,6 +140,7 @@ export default function SignUp() {
                 <View style={styles.passwordContainer}>
                     <TextInput
                         placeholder="Confirm Password"
+                        placeholderTextColor="#838383"
                         secureTextEntry={!showConfirmPassword}
                         style={styles.passwordInput}
                         onChangeText={setConfirmPassword}
@@ -213,7 +216,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#838383',
         padding: 10,
-        borderRadius: 5
+        borderRadius: 5,
+        color: "#838383",
     },
 
     passwordContainer: {
@@ -227,7 +231,8 @@ const styles = StyleSheet.create({
     },
     passwordInput: {
         flex: 1,
-        padding: 10
+        padding: 10,
+        color: "#838383",
     },
     eyeIcon: {
         paddingHorizontal: 5
@@ -236,7 +241,8 @@ const styles = StyleSheet.create({
     linkContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 10
+        marginTop: 10,
+        paddingBottom: 30,
     },
     linkTextGray: {
         color: '#838383',

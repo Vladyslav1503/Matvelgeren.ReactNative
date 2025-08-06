@@ -33,15 +33,19 @@ export default function SignIn() {
         }).start();
     };
 
-    const hideLoader = () => {
+    const hideLoader = (immediate = false) => {
+        const delay = immediate ? 0 : 2500;
+
         setTimeout(() => {
             Animated.timing(scaleAnim, {
                 toValue: 0,
                 duration: 300,
                 easing: Easing.in(Easing.ease),
                 useNativeDriver: true,
+            }).start(() => {
+                setLoading(false); // Make sure to set loading to false after animation
             });
-        }, 2500);
+        }, delay);
     };
 
     async function signInWithEmail() {
@@ -55,8 +59,6 @@ export default function SignIn() {
             return;
         }
 
-        // Password validation regex
-        // At least 6 chars, 1 lowercase, 1 uppercase, 1 digit, 1 special character
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
         if (!passwordRegex.test(password)) {
             Alert.alert("Password must be at least 6 characters long and include lowercase, uppercase, number, and special character.");
@@ -72,21 +74,19 @@ export default function SignIn() {
         });
 
         if (error) {
-            hideLoader();
+            hideLoader(true); // Pass true for immediate hiding on error
             return Alert.alert("Login Failed", error.message);
         }
 
-        // Wait for session to be set
         const { data: sessionData } = await supabase.auth.getSession();
 
         if (!sessionData.session) {
-            hideLoader();
+            hideLoader(true); // Pass true for immediate hiding on error
             return Alert.alert("Login Error", "No session returned after login");
         }
 
-        // Navigate after session is available
         router.replace('/');
-        hideLoader();
+        hideLoader(); // Normal delay for successful login
     }
 
     // Google OAuth setup
@@ -121,6 +121,7 @@ export default function SignIn() {
              <Text style={styles.instruction}>Email</Text>
              <TextInput
                  placeholder="username@example.com"
+                 placeholderTextColor="#838383"
                  onChangeText={setEmail}
                  style={styles.input}
                  autoCapitalize="none"
@@ -131,6 +132,7 @@ export default function SignIn() {
              <View style={styles.passwordContainer}>
                  <TextInput
                      placeholder="Password"
+                     placeholderTextColor="#838383"
                      secureTextEntry={!showPassword}
                      onChangeText={setPassword}
                      style={styles.passwordInput}
@@ -232,7 +234,8 @@ const styles = StyleSheet.create({
         borderColor: '#838383',
         padding: 10,
         marginBottom: 12,
-        borderRadius: 5
+        borderRadius: 5,
+        color: '#838383'
     },
     passwordContainer: {
         flexDirection: 'row',
@@ -245,7 +248,8 @@ const styles = StyleSheet.create({
     },
     passwordInput: {
         flex: 1,
-        padding: 10
+        padding: 10,
+        color: '#838383',
     },
     eyeIcon: {
         paddingHorizontal: 5

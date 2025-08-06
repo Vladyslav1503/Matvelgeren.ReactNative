@@ -49,6 +49,11 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         )
     ).current;
 
+    // Calculate safe bottom padding - ensure minimum padding on Android
+    const safeBottomPadding = Platform.OS === 'android'
+        ? Math.max(bottom, 16) // Minimum 16px padding on Android
+        : bottom + 6;
+
     useEffect(() => {
         Animated.spring(translateX, {
             toValue: state.index * TAB_WIDTH,
@@ -68,7 +73,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     }, [animatedValues, state.index]);
 
     return (
-        <View style={[styles.container, { paddingBottom: bottom + 6 }]}>
+        <View style={[styles.container, { paddingBottom: safeBottomPadding }]}>
             <Animated.View
                 style={[
                     styles.indicator,
@@ -83,13 +88,17 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
                 const onPress = () => {
                     const routeKey = state.routes[index].key;
-                    const event = navigation.emit({ type: 'tabPress', target: routeKey, canPreventDefault: true
+                    const event = navigation.emit({
+                        type: 'tabPress',
+                        target: routeKey,
+                        canPreventDefault: true
                     });
 
                     if (!isFocused && !event.defaultPrevented) {
                         navigation.navigate(tab.route);
                     }
                 };
+
                 const animatedStyle = {
                     transform: [
                         {
@@ -134,16 +143,18 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         maxHeight: 80,
         height: TAB_BAR_HEIGHT,
+        minHeight: Platform.OS === 'android' ? 60 : 55, // Increased minHeight for Android
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         overflow: 'visible',
         zIndex: 1,
         ...Platform.select({
             android: {
-                boxShadow: '0 -10px 25px rgba(0, 0, 0, 0.06)',
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: -16 },
                 elevation: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -16 },
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
             },
             ios: {
                 shadowColor: '#000',
@@ -172,9 +183,8 @@ const styles = StyleSheet.create({
         color: '#225D4F',
         fontFamily: 'Inter-Regular',
         lineHeight: 12,
-        //maxHeight: 56,
         includeFontPadding: false,
-        paddingBottom: 2,
+        paddingBottom: Platform.OS === 'android' ? 24 : 2, // Extra padding for Android
     },
     focusedLabel: {
         fontFamily: 'Inter-SemiBold',
@@ -189,8 +199,12 @@ const styles = StyleSheet.create({
         zIndex: -1,
         ...Platform.select({
             android: {
-                elevation: 0,
                 boxShadow: '0 -20px 14px rgba(0, 0, 0, 0.02)',
+                elevation: 0,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -20 },
+                shadowOpacity: 0.02,
+                shadowRadius: 14,
             },
             ios: {
                 shadowColor: '#000',

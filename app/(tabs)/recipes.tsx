@@ -185,6 +185,7 @@ export default function Recipes() {
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Find recipes"
+                    placeholderTextColor="#838383"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                 />

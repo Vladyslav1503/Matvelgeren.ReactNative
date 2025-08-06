@@ -1,6 +1,45 @@
-# Welcome to your Expo app 👋
+# Matvelgeren - Smart Shopping & Recipe Management App 🛒👨‍🍳
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Matvelgeren is a comprehensive mobile application built with React Native and Expo that combines smart shopping features with recipe management. The app helps users discover recipes, scan product barcodes, manage shopping carts, and streamline their grocery shopping experience.
+
+## ✨ Features
+
+- **📱 Barcode Scanner**: Scan product barcodes to quickly add items to your shopping cart
+- **🍳 Recipe Management**: Browse, search, and save your favorite recipes
+- **🛒 Smart Shopping Cart**: Organize and manage your shopping lists
+- **🔍 Product Search**: Find products and get detailed information
+- **👤 User Profile**: Personalized user experience with profile management
+- **🔐 Authentication**: Secure login and user management with Supabase
+- **📊 Visual Charts**: Track shopping patterns and recipe analytics
+- **🌐 Multi-platform**: Works on iOS, Android, and Web
+
+## 🎥 Demo Video
+
+* A comprehensive demo video showcasing all app features will be available here.*
+* [![Watch the video](https://img.youtube.com/vi/vpg7LiCzP9w/0.jpg)](https://youtu.be/vpg7LiCzP9w)
+
+
+## 🚀 Technology Stack
+
+- **Frontend**: React Native 0.79.2 with TypeScript 5.8.3
+- **Framework**: Expo 53.0.9
+- **Backend**: Supabase for authentication and data management
+- **Navigation**: React Navigation with tab-based navigation
+- **State Management**: React hooks and context
+- **Camera**: Expo Camera for barcode scanning
+- **Charts**: React Native Chart Kit for data visualization
+- **UI Components**: Custom components with React Native SVG
+
+## 📱 App Structure
+
+- **Authentication Flow**: Secure login and registration
+- **Main Tabs**:
+  - 🏠 **Home**: Dashboard and overview
+  - 🔍 **Search**: Product and recipe search
+  - 📷 **Scanner**: Barcode scanning functionality
+  - 🍳 **Recipes**: Recipe browsing and management
+  - 🛒 **Cart**: Shopping cart management
+  - 👤 **Profile**: User settings and preferences
 
 ## Get started
 
@@ -25,26 +64,28 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## 🛠️ Development
 
-When you're ready, run:
+This project is structured using:
+- **File-based routing** with Expo Router
+- **TypeScript** for type safety
+- **Component-based architecture** with reusable UI components
+- **API integration** with external services
+- **Testing** with Jest and React Native Testing Library
+
+### Key Directories
+
+- `/app` - Main application screens and routing
+- `/components` - Reusable UI components
+- `/lib` - Utility libraries and configurations
+- `/utils` - Helper functions and utilities
+- `/api` - API integration and services
+- `/assets` - Images, fonts, and other static assets
+
+## 🧪 Testing
+
+Run the test suite:
 
 ```bash
-npm run reset-project
+npm test
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

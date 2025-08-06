@@ -382,6 +382,7 @@ export default function Search() {
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search product or recipe"
+                    placeholderTextColor="#838383"
                     value={searchQuery}
                     onChangeText={handleSearchChange}
                 />

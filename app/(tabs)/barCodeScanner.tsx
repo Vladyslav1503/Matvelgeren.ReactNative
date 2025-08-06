@@ -20,6 +20,7 @@ import ProductCard from '../../components/ProductCard';
 import { fetchProductByEAN } from '@/api/kassalappAPI';
 import { mapApiResponseToProductCardEfficient } from '@/utils/nutritionParser';
 import Svg, { Defs, Rect, Mask } from 'react-native-svg';
+import { StatusBar } from 'expo-status-bar';
 
 import ScanFocusBox from '@/assets/icons/scan_focus_box.svg';
 
@@ -252,15 +253,18 @@ export default function BarcodeScanner() {
 
     if (!permission?.granted && !testMode) {
         return (
-            <SafeAreaView style={styles.container}>
-                <Text style={styles.permissionText}>We need your permission to show the camera</Text>
-                <TouchableOpacity style={styles.button} onPress={requestPermission}>
-                    <Text style={styles.buttonText}>Grant permission</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.testModeButton} onPress={toggleTestMode}>
-                    <Text style={styles.testModeButtonText}>Enter Test Mode</Text>
-                </TouchableOpacity>
-            </SafeAreaView>
+            <>
+                <StatusBar style="dark" />
+                <SafeAreaView style={styles.container}>
+                    <Text style={styles.permissionText}>We need your permission to show the camera</Text>
+                    <TouchableOpacity style={styles.button} onPress={requestPermission}>
+                        <Text style={styles.buttonText}>Grant permission</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.testModeButton} onPress={toggleTestMode}>
+                        <Text style={styles.testModeButtonText}>Enter Test Mode</Text>
+                    </TouchableOpacity>
+                </SafeAreaView>
+            </>
         );
     }
 
@@ -268,7 +272,8 @@ export default function BarcodeScanner() {
     const safeResultContainerHeight = height - centerY - FRAME_HEIGHT - TAB_BAR_HEIGHT - insets.bottom - 40;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+            <StatusBar style="dark" />
             {/* Camera layer (shown only when not in test mode) */}
             {isFocused && !testMode && (
                 <CameraView
@@ -482,7 +487,7 @@ export default function BarcodeScanner() {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }
 
