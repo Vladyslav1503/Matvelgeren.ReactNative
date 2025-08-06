@@ -15,7 +15,7 @@ Matvelgeren is a comprehensive mobile application built with React Native and Ex
 
 ## 🎥 Demo Video
 
-* A comprehensive demo video showcasing all app features will be available here.*
+* A comprehensive demo video showcasing all app features
 * [![Watch the video](https://img.youtube.com/vi/vpg7LiCzP9w/0.jpg)](https://youtu.be/vpg7LiCzP9w)
 
 
